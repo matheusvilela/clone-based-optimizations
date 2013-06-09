@@ -9,8 +9,6 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/BranchProbability.h"
-#include "llvm/Analysis/BranchProbabilityInfo.h"
 
 
 namespace llvm {
@@ -24,7 +22,6 @@ namespace llvm {
     std::map<BasicBlock*, int> BasicBlockIDs;
     std::string FunctionName;
     BranchPredictionPass *BPP;
-    BranchProbabilityInfo *BPI;
 
    public:
 
@@ -36,7 +33,7 @@ namespace llvm {
 
    private:
 
-    void printDot(std::ostream& output, const CFG& graph) const;
+    void printDot(raw_ostream& output, const CFG& graph) const;
 
   };
 }

@@ -5,7 +5,6 @@ using namespace llvm;
 
 void BranchPredictionDot::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<BranchPredictionPass>();
-  AU.addRequired<BranchProbabilityInfo>();
   AU.setPreservesAll();
 }
 
@@ -13,7 +12,6 @@ bool BranchPredictionDot::runOnFunction(Function &F) {
 
   int BasicBlockID = 0;
   BPP = &getAnalysis<BranchPredictionPass>();
-  BPI = &getAnalysis<BranchProbabilityInfo>();
   FunctionName = F.getName();
   for (Function::iterator it = F.begin(); it != F.end(); ++it) {
     BasicBlock* BB = it;
@@ -38,17 +36,15 @@ bool BranchPredictionDot::runOnFunction(Function &F) {
 }
 
 void BranchPredictionDot::print(raw_ostream& O, const Module *M) const {
-  std::stringstream dotFileSS;
-  dotFileSS << "digraph \""<< FunctionName <<"\" {" << std::endl;
-  dotFileSS << "rankdir=LR;" << std::endl;
+  O << "digraph \""<< FunctionName <<"\" {\n";
+  O << "rankdir=LR;\n";
 
-  printDot(dotFileSS, graph);
+  printDot(O, graph);
 
-  dotFileSS << "}" << std::endl;
-  O << dotFileSS.str();
+  O << "}\n";
 }
  
-void BranchPredictionDot::printDot(std::ostream& output, const CFG &graph) const {
+void BranchPredictionDot::printDot(raw_ostream& output, const CFG &graph) const {
 
   // Declare the vertices
   for (CFG::const_iterator it = graph.begin(); it != graph.end(); ++it) {
@@ -56,17 +52,17 @@ void BranchPredictionDot::printDot(std::ostream& output, const CFG &graph) const
     BasicBlock* BB = it->first;
     output << "    " << BasicBlockIDs.at(BB) << " [label=\"";
     output << (std::string) BB->getName() << ":|";
-    output << "\\l\\" << std::endl;
+    output << "\\l\\\n";
 
-    // for(BasicBlock::const_iterator it2 = BB->begin(); it2 != BB->end(); ++it2) {
-    //   if (const Instruction *inst = dyn_cast<Instruction>(it2)) {
-    //     output << inst;
-    //     output << "\\l\\" << std::endl;
-    //   }
-    // }
+    for(BasicBlock::const_iterator it2 = BB->begin(); it2 != BB->end(); ++it2) {
+      if (const Instruction *inst = dyn_cast<Instruction>(it2)) {
+        inst->print(output);
+        output << "\\l\\\n";
+      }
+    }
     
     std::string style = "shape=record";
-    output << "\"," << style << "];" << std::endl;
+    output << "\"," << style << "];\n";
   }
 
   // Print the Edges
@@ -76,14 +72,14 @@ void BranchPredictionDot::printDot(std::ostream& output, const CFG &graph) const
     for (std::vector<BasicBlock*>::iterator it2 = successors.begin(); it2 != successors.end(); ++it2) {
       int id2     = BasicBlockIDs.at(*it2);
 
-      output.unsetf ( std::ios::floatfield );
-      output.precision(3);
-      const BranchProbability llvm_prob = BPI->getEdgeProbability(it->first, *it2);
-      double prob1 = BPP->getEdgeProbability(it->first, *it2);
-      double prob2 = (double) llvm_prob.getNumerator() / llvm_prob.getDenominator();
+      std::stringstream str;
+      str.unsetf ( std::ios::floatfield );
+      str.precision(3);
+      double prob = BPP->getEdgeProbability(it->first, *it2);
 
-      output << "    " << id1 << " -> " << id2 << "[ label=\"" << prob1 <<
-      " , " << prob2 << "\" ];" << std::endl;
+      str << "    " << id1 << " -> " << id2 << "[ label=\"" << prob 
+        << "\"];\n";
+      output << str.str();
     }
   }
 }
