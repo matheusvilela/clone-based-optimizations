@@ -1,4 +1,4 @@
-#summary A gallery with test cases, and the results that our range analysis produces for them.
+#summary A gallery with test cases, and the results that Wu's static profiler produces to them.
 
 = Example's Gallery =
 
