@@ -17,7 +17,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#include "../alias-analysis/PADriver/PADriver.h"
+#include "PADriver.h"
 
 namespace llvm {
   STATISTIC(NoAliasPotentialFunctions, "Counts number of functions");
