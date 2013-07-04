@@ -2,7 +2,10 @@
 
 using namespace llvm;
 
-CloneConstantArgs::CloneConstantArgs() : ModulePass(ID) { }
+CloneConstantArgs::CloneConstantArgs() : ModulePass(ID) {
+  FunctionsCloned = 0;
+  CallsReplaced = 0;
+}
 
 bool CloneConstantArgs::runOnModule(Module &M) {
 
@@ -96,11 +99,13 @@ bool CloneConstantArgs::cloneFunctions() {
         Function* NF = cloneFunctionWithConstArgs(it->first, caller, suffix.str());
         replaceCallingInst(caller, NF);
         clonedFns[userArgs] = NF;
+        FunctionsCloned++;
       } else {
         // Use existing clone
         Function* NF = clonedFns.at(userArgs);
         replaceCallingInst(caller, NF);
       }
+      CallsReplaced++;
 
       modified = true;
     }
@@ -171,7 +176,7 @@ Function* CloneConstantArgs::cloneFunctionWithConstArgs(Function *Fn, User* call
 }
 
 void CloneConstantArgs::print(raw_ostream& O, const Module* M) const {
-  O << "Hello.\n";
+  O << FunctionsCloned << " functions cloned and " << CallsReplaced << " calls replaced.";
 }
 
 // Register the pass to the LLVM framework

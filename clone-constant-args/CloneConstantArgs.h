@@ -19,6 +19,8 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 
 namespace llvm {
+  STATISTIC(FunctionsCloned, "Number of functions cloned.");
+  STATISTIC(CallsReplaced, "Number of calls replaced.");
   class CloneConstantArgs : public ModulePass {
 
 
