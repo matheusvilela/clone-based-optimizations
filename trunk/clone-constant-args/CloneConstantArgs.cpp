@@ -81,19 +81,29 @@ void CloneConstantArgs::collectFn2Clone() {
 // clone functions and replace its callers
 bool CloneConstantArgs::cloneFunctions() {
   bool modified = false;
-  std::map<Function*, Function*> clonedFunctions;
   for(std::map< Function*, std::vector <User*> >::iterator it = fn2Clone.begin();
       it != fn2Clone.end(); ++it) {
   
+    std::map< std::vector< std::pair<Argument*, Value*> >, Function*> clonedFns;
     for(unsigned long i = 0; i < it->second.size(); i++) {
       User* caller = it->second.at(i);
-      std::stringstream suffix;
-      suffix << "_constargs" << i;
-      Function* NF = cloneFunctionWithConstArgs(it->first, caller, suffix.str());
-      replaceCallingInst(caller, NF);
+      std::vector< std::pair<Argument*, Value*> > userArgs = arguments[caller];
+
+      if (!clonedFns.count(userArgs)) {
+        // Clone function if a proper clone doesnt already exist
+        std::stringstream suffix;
+        suffix << "_constargs" << i;
+        Function* NF = cloneFunctionWithConstArgs(it->first, caller, suffix.str());
+        replaceCallingInst(caller, NF);
+        clonedFns[userArgs] = NF;
+      } else {
+        // Use existing clone
+        Function* NF = clonedFns.at(userArgs);
+        replaceCallingInst(caller, NF);
+      }
+
       modified = true;
     }
-  
   }
   return modified;
 }
@@ -122,18 +132,10 @@ Function* CloneConstantArgs::cloneFunctionWithConstArgs(Function *Fn, User* call
   Function::arg_iterator NFArg = NF->arg_begin();
   for (Function::arg_iterator Arg = Fn->arg_begin(), ArgEnd = Fn->arg_end(); Arg != ArgEnd; ++Arg, ++NFArg) {
     NFArg->setName(Arg->getName());
-
-    // We should also add NoAlias attr to parameters that are pointers
-    if (NFArg->getType()->isPointerTy()) {
-      AttrBuilder noalias(Attribute::get(NFArg->getContext(), Attribute::NoAlias));
-      int argNo = NFArg->getArgNo() + 1;
-      NFArg->addAttr(AttributeSet::get(NFArg->getContext(), argNo, noalias));
-    }
   }
 
   // To avoid name collision, we should select another name.
   NF->setName(Fn->getName() + suffix);
-
 
   // fill clone content
   ValueToValueMapTy VMap;

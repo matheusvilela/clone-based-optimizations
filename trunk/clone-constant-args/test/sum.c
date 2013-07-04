@@ -8,7 +8,7 @@ int main() {
   for (int i = 0; i < 10000000; i++) {
     int result = sum(1, 2);
     printf("%d", result);
-     result = sum(3, 4);
+     result = sum(1, 2);
     printf("%d", result);
      result = sum(5, 6);
     printf("%d", result);
