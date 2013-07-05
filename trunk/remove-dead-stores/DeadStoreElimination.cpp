@@ -57,15 +57,26 @@ bool DeadStoreEliminationPass::runOnFunction(Function &F) {
   // Remove dead stores
   bool changed = false;
   for (Function::iterator BB = F.begin(), E = F.end(); BB != E; ++BB) {
-    changed = changed | removeDeadStores(*BB);
+    changed = changed | removeDeadStores(*BB, F);
   }
   return changed;
 }
 
-bool DeadStoreEliminationPass::removeDeadStores(BasicBlock &BB) {
+bool DeadStoreEliminationPass::removeDeadStores(BasicBlock &BB, Function &F) {
 
   std::vector<Instruction*> toRemove;
   bool changed = false;
+
+  std::set<int> argsPositions;
+  for (Function::arg_iterator formalArgIter = F.arg_begin(); formalArgIter !=
+      F.arg_end(); ++formalArgIter) {
+    Value *formalArg = formalArgIter;
+    if (formalArg->getType()->isPointerTy()) {
+      int ptrID = PAD->Value2Int(formalArg);
+      std::set<int> aliasIDs = PAD->pointerAnalysis->pointsTo(ptrID);
+      argsPositions.insert(aliasIDs.begin(), aliasIDs.end());
+    }
+  }
   for (BasicBlock::iterator it = BB.begin(), E = BB.end(); it != E; ++it) {
     Instruction *inst = it;
     if (isa<StoreInst>(inst)) {
@@ -73,7 +84,14 @@ bool DeadStoreEliminationPass::removeDeadStores(BasicBlock &BB) {
       Value *ptr = SI->getPointerOperand();
       int ptrID        = PAD->Value2Int((Value*)ptr);
       std::set<int> aliasIDs = PAD->pointerAnalysis->pointsTo(ptrID);
-      if (aliasIDs.size() == 1 && !outValues[inst].count(*aliasIDs.begin())) {
+      // Remove store if:
+      // - pointer points to only one position
+      //   * given by alias analysis
+      // - pointer points to position that is not live outside function
+      //   * its position is not pointed by any pointer argument
+      // - it stores on a position that has no live uses after it
+      //   * given by the analysis
+      if (aliasIDs.size() == 1 && !argsPositions.count(*aliasIDs.begin()) && !outValues[inst].count(*aliasIDs.begin())) {
         DEBUG(errs() << "Removing dead store\n");
         toRemove.push_back(inst);
       }
