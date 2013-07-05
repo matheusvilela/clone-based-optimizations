@@ -35,7 +35,7 @@ namespace llvm {
 
     virtual void getAnalysisUsage(AnalysisUsage &AU) const;
     bool runOnFunction(Function &F);
-    bool removeDeadStores(BasicBlock &BB);
+    bool removeDeadStores(BasicBlock &BB, Function &F);
     bool analyzeBasicBlock(BasicBlock &BB);
     void print(raw_ostream &O, const Module *M) const;
     void printAnalysis(raw_ostream &O) const;
