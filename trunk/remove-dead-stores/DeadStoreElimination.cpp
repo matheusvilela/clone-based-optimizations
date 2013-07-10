@@ -17,12 +17,20 @@ void DeadStoreEliminationPass::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.setPreservesAll();
 }
 
-DeadStoreEliminationPass::DeadStoreEliminationPass() : FunctionPass(ID) {
+DeadStoreEliminationPass::DeadStoreEliminationPass() : ModulePass(ID) {
   RemovedStores = 0;
 }
 
+bool DeadStoreEliminationPass::runOnModule(Module &M) {
+  PAD          = &getAnalysis<PADriver>();
+  bool changed = false;
+  for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
+    changed = changed | runOnFunction(*F);
+  }
+  return changed;
+}
+
 bool DeadStoreEliminationPass::runOnFunction(Function &F) {
-  PAD       = &getAnalysis<PADriver>();
   currentFn = &F;
 
   std::queue<BasicBlock*> workList;
@@ -85,11 +93,11 @@ bool DeadStoreEliminationPass::removeDeadStores(BasicBlock &BB, Function &F) {
       int ptrID        = PAD->Value2Int((Value*)ptr);
       std::set<int> aliasIDs = PAD->pointerAnalysis->pointsTo(ptrID);
       // Remove store if:
-      // - pointer points to only one position
+      // 1) pointer points to only one position
       //   * given by alias analysis
-      // - pointer points to position that is not live outside function
+      // 2) pointer points to position that is not live outside function
       //   * its position is not pointed by any pointer argument
-      // - it stores on a position that has no live uses after it
+      // 3) it stores on a position that has no live uses after it
       //   * given by the analysis
       if (aliasIDs.size() == 1 && !argsPositions.count(*aliasIDs.begin()) && !outValues[inst].count(*aliasIDs.begin())) {
         DEBUG(errs() << "Removing dead store\n");
@@ -128,8 +136,12 @@ bool DeadStoreEliminationPass::analyzeBasicBlock(BasicBlock &BB) {
     }
 
     //Compute in set
+    unsigned long inSize = inValues[inst].size();
     std::set<int> myOut = outValues[inst];
     inValues[inst].insert(myOut.begin(), myOut.end());
+    if (inst == BB.begin() && inSize != inValues[inst].size()) {
+      changed = true;
+    }
 
     if (isa<StoreInst>(inst)) {
       const StoreInst *SI = dyn_cast<StoreInst>(inst);
@@ -138,8 +150,10 @@ bool DeadStoreEliminationPass::analyzeBasicBlock(BasicBlock &BB) {
       std::set<int> aliasIDs = PAD->pointerAnalysis->pointsTo(ptrID);
       if (aliasIDs.size() == 1) {
         DEBUG(errs() << "store to value that points to only one position: " << *aliasIDs.begin() << "\n");
-        inValues[inst].erase(*aliasIDs.begin());
-        changed = true;
+        if(inValues[inst].count(*aliasIDs.begin())) {
+          inValues[inst].erase(*aliasIDs.begin());
+          if (inst == BB.begin()) changed = true;
+        }
       } else if (aliasIDs.size() == 0) {
         DEBUG(errs() << "store to value that points to no position (?)\n");
       } else {
@@ -151,9 +165,15 @@ bool DeadStoreEliminationPass::analyzeBasicBlock(BasicBlock &BB) {
       }
     }
 
-    else if (isa<LoadInst>(inst)) {
-      const LoadInst *LI = dyn_cast<LoadInst>(inst);
-      const Value *ptr = LI->getPointerOperand();
+    else if (isa<LoadInst>(inst) || isa<GetElementPtrInst>(inst)) {
+      const Value *ptr;
+      if (isa<LoadInst>(inst)) {
+        const LoadInst *LI = dyn_cast<LoadInst>(inst);
+        ptr = LI->getPointerOperand();
+      } else {
+        const GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(inst);
+        ptr = GEPI->getPointerOperand();
+      }
 
       int ptrID = PAD->Value2Int((Value*)ptr);
       std::set<int> aliasIDs = PAD->pointerAnalysis->pointsTo(ptrID);
@@ -166,7 +186,7 @@ bool DeadStoreEliminationPass::analyzeBasicBlock(BasicBlock &BB) {
           DEBUG(errs() << *aliasIt << " ");
           if (inValues[inst].count(*aliasIt) == 0) {
             inValues[inst].insert(*aliasIt);
-            changed = true;
+            if (inst == BB.begin()) changed = true;
           }
         }
         DEBUG(errs() << "\n");
@@ -175,6 +195,7 @@ bool DeadStoreEliminationPass::analyzeBasicBlock(BasicBlock &BB) {
     }
     successor = inst;
   }
+  DEBUG(errs() << "running on bb " << BB.getName() << " returned" << changed << "\n");
   return changed;
 }
 
