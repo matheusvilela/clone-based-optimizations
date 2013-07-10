@@ -15,11 +15,24 @@
 
 namespace llvm {
   STATISTIC(RemovedStores, "Counts number of remove stores.");
-  class DeadStoreEliminationPass : public FunctionPass {
+  class DeadStoreEliminationPass : public ModulePass {
 
     // Successors and Predecessor basic blocks on the CFG
     std::map<BasicBlock*, std::vector<BasicBlock*> > successors;
     std::map<BasicBlock*, std::vector<BasicBlock*> > predecessors;
+
+    //TODO:
+    // Functions that store on params and can potentially be optimized
+    // std::map<Function*, std::set<Value*> > functionsThatStoreOnParams;
+    // * Run intraprocedural dead store elimination. While doing this:
+    //   - Get function that store on args and these args
+    //   - If a store on an arg cannot be removed by rule 3,
+    //     remove it from the args that are stored
+    // * Take the possible stores out of the call.
+    // * Run intraprocedural dead store elimination
+    //   + If an artificial store can be removed, then:
+    //     - Clone the function, removing the store
+    //     - Change the call
 
     PADriver* PAD;
     Function *currentFn;
@@ -34,6 +47,7 @@ namespace llvm {
     DeadStoreEliminationPass();
 
     virtual void getAnalysisUsage(AnalysisUsage &AU) const;
+    bool runOnModule(Module &M);
     bool runOnFunction(Function &F);
     bool removeDeadStores(BasicBlock &BB, Function &F);
     bool analyzeBasicBlock(BasicBlock &BB);
