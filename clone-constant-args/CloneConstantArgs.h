@@ -21,6 +21,7 @@
 
 namespace llvm {
   STATISTIC(FunctionsCloned, "Number of functions cloned.");
+  STATISTIC(ClonesCount,     "Number of clones.");
   STATISTIC(FunctionsCount,  "Total number of functions.");
   STATISTIC(CallsReplaced,   "Number of calls replaced.");
   STATISTIC(CallsCount,      "Total number of calls.");
