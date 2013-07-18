@@ -7,6 +7,7 @@ CloneConstantArgs::CloneConstantArgs() : ModulePass(ID) {
   CallsReplaced   = 0;
   FunctionsCount  = 0;
   CallsCount      = 0;
+  ClonesCount     = 0;
 }
 
 bool CloneConstantArgs::runOnModule(Module &M) {
@@ -20,6 +21,8 @@ bool CloneConstantArgs::runOnModule(Module &M) {
     ModulePass *DAE = createDeadArgEliminationPass();
     DAE->runOnModule(M);
   }
+
+  print(errs(), &M);
 
   return modified;
 }
@@ -97,6 +100,7 @@ bool CloneConstantArgs::cloneFunctions() {
   for(std::map< Function*, std::vector <User*> >::iterator it = fn2Clone.begin();
       it != fn2Clone.end(); ++it) {
   
+    FunctionsCloned++;
     std::map< std::vector< std::pair<Argument*, Value*> >, Function*> clonedFns;
     for(unsigned long i = 0; i < it->second.size(); i++) {
       User* caller = it->second.at(i);
@@ -109,7 +113,7 @@ bool CloneConstantArgs::cloneFunctions() {
         Function* NF = cloneFunctionWithConstArgs(it->first, caller, suffix.str());
         replaceCallingInst(caller, NF);
         clonedFns[userArgs] = NF;
-        FunctionsCloned++;
+        ClonesCount++;
       } else {
         // Use existing clone
         Function* NF = clonedFns.at(userArgs);
@@ -187,8 +191,8 @@ Function* CloneConstantArgs::cloneFunctionWithConstArgs(Function *Fn, User* call
 }
 
 void CloneConstantArgs::print(raw_ostream& O, const Module* M) const {
-  O << "# functions; # cloned functions; # calls; # replaced calls\n";
-  O << FunctionsCount << ";" << FunctionsCloned << ";" << CallsCount << ";" << CallsReplaced << "\n";
+  O << "# functions; # cloned functions; # clones; # calls; # replaced calls\n";
+  O << FunctionsCount << ";" << FunctionsCloned << ";" << ClonesCount << ";" << CallsCount << ";" << CallsReplaced << "\n";
 }
 
 // Register the pass to the LLVM framework
