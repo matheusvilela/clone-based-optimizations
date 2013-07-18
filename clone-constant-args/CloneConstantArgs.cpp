@@ -127,6 +127,8 @@ bool CloneConstantArgs::cloneFunctions() {
     }
     if (it->first->use_empty()) {
       OrphanedFunctions++;
+      it->first->dropAllReferences();
+      it->first->removeFromParent();
     }
   }
   return modified;
