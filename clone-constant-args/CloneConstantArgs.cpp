@@ -4,7 +4,9 @@ using namespace llvm;
 
 CloneConstantArgs::CloneConstantArgs() : ModulePass(ID) {
   FunctionsCloned = 0;
-  CallsReplaced = 0;
+  CallsReplaced   = 0;
+  FunctionsCount  = 0;
+  CallsCount      = 0;
 }
 
 bool CloneConstantArgs::runOnModule(Module &M) {
@@ -13,12 +15,19 @@ bool CloneConstantArgs::runOnModule(Module &M) {
   collectFn2Clone();
   bool modified = cloneFunctions();
 
+  if (modified) {
+    // Remove dead arguments
+    ModulePass *DAE = createDeadArgEliminationPass();
+    DAE->runOnModule(M);
+  }
+
   return modified;
 }
 
 void CloneConstantArgs::findConstantArgs(Module &M) {
   for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
     if (!F->isDeclaration()) {
+      FunctionsCount++;
 
       if (F->arg_empty() || F->use_empty()) continue;
 
@@ -45,6 +54,7 @@ void CloneConstantArgs::findConstantArgs(Module &M) {
           }
         }
  
+        CallsCount++;
         if (hasConstantArgs) {
           actualArgIter = CS.arg_begin();
           Function::arg_iterator formalArgIter = F->arg_begin();
@@ -114,7 +124,6 @@ bool CloneConstantArgs::cloneFunctions() {
 }
 
 void CloneConstantArgs::replaceCallingInst(User* caller, Function* fn) {
-  //TODO: remove arguments from call instruction
   if (isa<CallInst>(caller)) {
     CallInst *callInst = dyn_cast<CallInst>(caller);
     callInst->setCalledFunction(fn);
@@ -131,6 +140,9 @@ Function* CloneConstantArgs::cloneFunctionWithConstArgs(Function *Fn, User* call
   // same as the old function
   Function *NF = Function::Create(Fn->getFunctionType(), Fn->getLinkage());
   NF->copyAttributesFrom(Fn);
+
+  // Make the function internal
+  NF->setLinkage(GlobalValue::InternalLinkage);
 
   // After the parameters have been copied, we should copy the parameter
   // names, to ease function inspection afterwards.
@@ -167,7 +179,6 @@ Function* CloneConstantArgs::cloneFunctionWithConstArgs(Function *Fn, User* call
     Value *actualArg = argsMap[FnArgIter];
     formalArg->replaceAllUsesWith(actualArg);
   }
-  //TODO remove args from function definition
 
   // Insert the clone function before the original
   Fn->getParent()->getFunctionList().insert(Fn, NF);
@@ -176,7 +187,8 @@ Function* CloneConstantArgs::cloneFunctionWithConstArgs(Function *Fn, User* call
 }
 
 void CloneConstantArgs::print(raw_ostream& O, const Module* M) const {
-  O << FunctionsCloned << " functions cloned and " << CallsReplaced << " calls replaced.";
+  O << "# functions; # cloned functions; # calls; # replaced calls\n";
+  O << FunctionsCount << ";" << FunctionsCloned << ";" << CallsCount << ";" << CallsReplaced << "\n";
 }
 
 // Register the pass to the LLVM framework

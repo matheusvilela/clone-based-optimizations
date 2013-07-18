@@ -16,13 +16,15 @@
 #include "llvm/Support/CallSite.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
 namespace llvm {
   STATISTIC(FunctionsCloned, "Number of functions cloned.");
-  STATISTIC(CallsReplaced, "Number of calls replaced.");
+  STATISTIC(FunctionsCount,  "Total number of functions.");
+  STATISTIC(CallsReplaced,   "Number of calls replaced.");
+  STATISTIC(CallsCount,      "Total number of calls.");
   class CloneConstantArgs : public ModulePass {
-
 
     std::map< User*, std::vector< std::pair<Argument*, Value*> > > arguments;
     std::map< Function*, std::vector <User*> > fn2Clone;
