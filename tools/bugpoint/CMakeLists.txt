@@ -1,5 +1,6 @@
 set(LLVM_LINK_COMPONENTS asmparser instrumentation scalaropts ipo
-  linker bitreader bitwriter irreader vectorize objcarcopts pur pta)
+    linker bitreader bitwriter irreader vectorize objcarcopts pur pta
+    pa noalias cca dse static-profiler)
 
 include_directories(../../llvm/tools/bugpoint)
 

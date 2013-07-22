@@ -32,7 +32,7 @@
 //#include "llvm/Analysis/DebugInfo.h"
 //#include <llvm/Support/CommandLine.h>
 
-using namespace llvm;
+namespace llvm {
 
 STATISTIC(PABaseCt,  "Counts number of base constraints");
 STATISTIC(PAAddrCt,  "Counts number of address constraints");
@@ -99,3 +99,5 @@ class PADriver : public ModulePass {
 	void matchReturnValueWithReturnVariable(Function &F);
 
 };
+
+}

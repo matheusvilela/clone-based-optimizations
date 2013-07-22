@@ -41,6 +41,8 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/InitializePasses.h"
+#include "llvm/CBO/CBO.h"
 
 #include <vector>
 #include <algorithm>
@@ -50,9 +52,12 @@ using namespace llvm;
 char BlockEdgeFrequencyPass::ID = 0;
 const double BlockEdgeFrequencyPass::epsilon = 0.000001;
 
-static RegisterPass<BlockEdgeFrequencyPass>
-X("block-edge-frequency", "Statically estimate basic block and edge frequencies",
-  false, true);
+INITIALIZE_PASS(BlockEdgeFrequencyPass, "block-edge-frequency",
+                "Statically estimate basic block and edge frequencies", false, true)
+
+FunctionPass *llvm::createBlockEdgeFrequencyPassPass() {
+  return new BlockEdgeFrequencyPass;
+}
 
 // FunctionPass *llvm::createBlockEdgeFrequencyPass() {
 //   return new BlockEdgeFrequencyPass();

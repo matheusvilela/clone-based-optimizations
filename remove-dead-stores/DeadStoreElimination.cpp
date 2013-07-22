@@ -1,15 +1,19 @@
 #include "DeadStoreElimination.h"
 #include "llvm/Support/CallSite.h"
+#include "llvm/InitializePasses.h"
+#include "llvm/CBO/CBO.h"
+
 #undef DEBUG_TYPE
 #define DEBUG_TYPE "dse"
 
 using namespace llvm;
 
 char DeadStoreEliminationPass::ID = 0;
+INITIALIZE_PASS(DeadStoreEliminationPass, "dead-store-elimination", "Remove dead stores", false, true)
 
-static RegisterPass<DeadStoreEliminationPass>
-X("dead-store-elimination", "Remove dead stores",
-    false, true);
+ModulePass *llvm::createDeadStoreEliminationPassPass() {
+  return new DeadStoreEliminationPass;
+}
 
 void DeadStoreEliminationPass::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<PADriver>();

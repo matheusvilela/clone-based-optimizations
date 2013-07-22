@@ -11,6 +11,7 @@ add_llvm_library(LLVMstatic-profiler
   BranchPredictionPass.h
   StaticFunctionCost.cpp
   StaticFunctionCost.h
+  InitStaticModule.cpp
   )
 
 add_dependencies(LLVMstatic-profiler intrinsics_gen)

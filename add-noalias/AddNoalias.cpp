@@ -1,4 +1,6 @@
 #include "AddNoalias.h"
+#include "llvm/InitializePasses.h"
+#include "llvm/CBO/CBO.h"
 
 using namespace llvm;
 
@@ -218,4 +220,8 @@ void AddNoalias::print(raw_ostream& O, const Module* M) const {
 
 // Register the pass to the LLVM framework
 char AddNoalias::ID = 0;
-static RegisterPass<AddNoalias> X("add-noalias", "Add noalias attribute to parameters.");
+INITIALIZE_PASS(AddNoalias, "add-noalias", "Add noalias attribute to parameters.", false, false)
+
+ModulePass *llvm::createNoAliasPass() {
+  return new AddNoalias;
+}
