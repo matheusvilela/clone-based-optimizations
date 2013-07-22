@@ -37,6 +37,7 @@
 #include "llvm/Transforms/Vectorize.h"
 #include "llvm/Transforms/PUR.h"
 #include "llvm/Analysis/PTA.h"
+#include "llvm/CBO/CBO.h"
 #include <cstdlib>
 
 namespace {
@@ -168,6 +169,12 @@ namespace {
       (void) llvm::createPruneClonesPass();
       (void) llvm::createClonesCountPass();
       (void) llvm::createAndersensPass();
+      (void) llvm::createPADriverPass();
+      (void) llvm::createCloneConstantArgsPass();
+      (void) llvm::createNoAliasPass();
+      (void) llvm::createDeadStoreEliminationPassPass();
+      (void) llvm::createBlockEdgeFrequencyPassPass();
+      (void) llvm::createBranchPredictionPassPass();
 
       (void)new llvm::IntervalPartition();
       (void)new llvm::FindUsedTypes();

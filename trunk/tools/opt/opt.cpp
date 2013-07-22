@@ -579,6 +579,11 @@ int main(int argc, char **argv) {
   initializeTarget(Registry);
   initializePUR(Registry);
   initializePTA(Registry);
+  initializePA(Registry);
+  initializeCCA(Registry);
+  initializeNoAlias(Registry);
+  initializeDSE(Registry);
+  initializeStaticProfiler(Registry);
 
   cl::ParseCommandLineOptions(argc, argv,
     "llvm .bc -> .bc modular optimizer and analysis printer\n");

@@ -68,6 +68,21 @@ void initializePUR(PassRegistry&);
 /// initializePTA - Initialize all passes linked into the PTA library.
 void initializePTA(PassRegistry&);
 
+/// initializePA - Initialize the PADriver library.
+void initializePA(PassRegistry&);
+
+/// initializeCCA - Initialize the CCA library.
+void initializeCCA(PassRegistry&);
+
+/// initializeNoAlias - Initialize the NoAlias library.
+void initializeNoAlias(PassRegistry&);
+
+/// initializeDSE - Initialize the DSE library.
+void initializeDSE(PassRegistry&);
+
+/// initializeStaticProfiler - Initialize the StaticProfiler library.
+void initializeStaticProfiler(PassRegistry&);
+
 void initializeAAEvalPass(PassRegistry&);
 void initializeADCEPass(PassRegistry&);
 void initializeAliasAnalysisAnalysisGroup(PassRegistry&);
@@ -284,6 +299,12 @@ void initializeCloneUnusedRetvalsPass(PassRegistry&);
 void initializePruneClonesPass(PassRegistry&);
 void initializeClonesCountPass(PassRegistry&);
 void initializeAndersensPass(PassRegistry&);
+void initializePADriverPass(PassRegistry&);
+void initializeCloneConstantArgsPass(PassRegistry&);
+void initializeAddNoaliasPass(PassRegistry&);
+void initializeDeadStoreEliminationPassPass(PassRegistry&);
+void initializeBlockEdgeFrequencyPassPass(PassRegistry&);
+void initializeBranchPredictionPassPass(PassRegistry&);
 }
 
 #endif

@@ -45,6 +45,11 @@ void LLVMInitializeCodeGen(LLVMPassRegistryRef R);
 void LLVMInitializeTarget(LLVMPassRegistryRef R);
 void LLVMInitializePUR(LLVMPassRegistryRef R);
 void LLVMInitializePTA(LLVMPassRegistryRef R);
+void LLVMInitializePA(LLVMPassRegistryRef&);
+void LLVMInitializeCCA(LLVMPassRegistryRef&);
+void LLVMInitializeNoAlias(LLVMPassRegistryRef&);
+void LLVMInitializeDSE(LLVMPassRegistryRef&);
+void LLVMInitializeStaticProfiler(LLVMPassRegistryRef&);
 
 /**
  * @}

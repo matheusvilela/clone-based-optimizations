@@ -9,6 +9,8 @@
 #endif
 
 #include "PADriver.h"
+#include "llvm/InitializePasses.h"
+#include "llvm/CBO/CBO.h"
 
 //#include <sstream>
 //#include <sys/time.h>
@@ -846,5 +848,8 @@ Value* AddrLeaks::Int2Value(int x)
 
 // Register the pass to the LLVM framework
 char PADriver::ID = 0;
-static RegisterPass<PADriver> X("pa", "Pointer Analysis Driver Pass");
+INITIALIZE_PASS(PADriver, "pa", "Pointer Analysis Driver Pass", false, false)
 
+ModulePass *llvm::createPADriverPass() {
+  return new PADriver;
+}

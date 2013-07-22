@@ -1,4 +1,6 @@
-set(LLVM_LINK_COMPONENTS ${LLVM_TARGETS_TO_BUILD} bitreader asmparser bitwriter irreader instrumentation scalaropts objcarcopts ipo vectorize pur pta)
+set(LLVM_LINK_COMPONENTS ${LLVM_TARGETS_TO_BUILD} bitreader asmparser bitwriter
+    irreader instrumentation scalaropts objcarcopts ipo vectorize pur pta
+    pa noalias cca dse static-profiler)
 
 add_llvm_tool(opt
   ../../llvm/tools/opt/AnalysisWrappers.cpp
