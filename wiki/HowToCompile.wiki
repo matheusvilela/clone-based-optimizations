@@ -1,4 +1,4 @@
-#summary How to compile PUR
+#summary How to compile CBO
 
 = Requirements =
 
