@@ -1,10 +1,11 @@
 #include <list>
-#include <tr1/unordered_set>
-#include <tr1/unordered_map>
 #include <queue>
 #include <stack>
 #include <sstream>
 #include <iostream>
+
+#include "llvm/ADT/SparseBitVector.h"
+#include "llvm/ADT/IndexedMap.h"
 
 #include "PointerAnalysis.h"
 
@@ -170,9 +171,9 @@ void PointerAnalysis::cycleSearch(int source, int target) {
 
 	// Tracking vars
 	bool cycleFound = false;
-	std::tr1::unordered_map<int,int> origin;
+	llvm::IndexedMap<int> origin;
 	//IntMap origin;
-	std::tr1::unordered_set<int> visited;
+	llvm::SparseBitVector<> visited;
 	//IntSet visited;
 	std::list<int> cycle;
 	std::stack<int> queue;
@@ -181,7 +182,7 @@ void PointerAnalysis::cycleSearch(int source, int target) {
 	if (debug) std::cerr << "Starting with " << source << " on the queue" << std::endl;;
 	queue.push(source);
 	origin[source] = target;
-	visited.insert(source);
+	visited.set(source);
 
 	// Do a Breadth-First Search
 	while ( !queue.empty() ) {
@@ -206,10 +207,10 @@ void PointerAnalysis::cycleSearch(int source, int target) {
 
 
 			// Add it to the search queue, if not there yet
-			if (visited.find(repN) == visited.end()) {
+			if (!visited.test(repN)) {
 				if (debug) std::cerr << "Add " << repN << " to the queue and marking it visited" << std::endl;
 				queue.push(repN);
-				visited.insert(repN);
+				visited.set(repN);
 
 				// Mark 'current' as the antecessor of 'n'
 				if (debug) std::cerr << "Mark " << current << " as antecessor of " << *n << std::endl;

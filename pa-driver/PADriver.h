@@ -1,6 +1,5 @@
 
 #include <sstream>
-#include <unistd.h>
 #include <ios>
 #include <fstream>
 #include <string>
@@ -92,7 +91,9 @@ class PADriver : public ModulePass {
 	//Value* Int2Value(int);
 	virtual void print(raw_ostream& O, const Module* M) const;
 	std::string intToStr(int v);
+#ifndef _WIN32
 	void process_mem_usage(double& vm_usage, double& resident_set);
+#endif
 	void addConstraints(Function &F);
 	void matchFormalWithActualParameters(Function &F);
 	void matchReturnValueWithReturnVariable(Function &F);

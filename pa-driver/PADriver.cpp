@@ -1,9 +1,12 @@
 #include <sstream>
-#include <unistd.h>
 #include <ios>
 #include <fstream>
 #include <string>
 #include <iostream>
+
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 #include "PADriver.h"
 
@@ -47,9 +50,11 @@ bool PADriver::runOnModule(Module &M) {
 
 	// Run the analysis
 	pointerAnalysis->solve(false);
+#ifndef _WIN32
 	double vmUsage, residentSet;
 	process_mem_usage(vmUsage, residentSet);
 	PAMemUsage = vmUsage;
+#endif
 
 	// Get some statistics
 	PAMerges = pointerAnalysis->getNumOfMertgedVertices();
@@ -108,6 +113,7 @@ std::string PADriver::intToStr(int v) {
 
 // ============================= //
 
+#ifndef _WIN32
 void PADriver::process_mem_usage(double& vm_usage, double& resident_set) {
 	using std::ios_base;
 	using std::ifstream;
@@ -143,6 +149,7 @@ void PADriver::process_mem_usage(double& vm_usage, double& resident_set) {
 	vm_usage     = vsize / 1024.0;
 	resident_set = rss * page_size_kb;
 }
+#endif
 
 // ============================= //
 
