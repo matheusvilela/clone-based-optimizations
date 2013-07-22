@@ -409,6 +409,11 @@ add_subdirectory(llvm/include/llvm  ${CMAKE_CURRENT_BINARY_DIR}/include/llvm)
 
 add_subdirectory(lib)
 add_subdirectory(poolalloc)
+add_subdirectory(pa-driver)
+add_subdirectory(add-noalias)
+add_subdirectory(clone-constant-args)
+add_subdirectory(remove-dead-stores)
+add_subdirectory(static-profiler)
 
 add_subdirectory(llvm/utils/FileCheck ${CMAKE_CURRENT_BINARY_DIR}/utils/FileCheck)
 add_subdirectory(llvm/utils/FileUpdate ${CMAKE_CURRENT_BINARY_DIR}/utils/FileUpdate)
