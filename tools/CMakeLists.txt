@@ -56,7 +56,9 @@ if( LLVM_ENABLE_PIC )
 endif()
 
 # XXX: Ugly fix for adding our own passes to clang
-set(LLVM_TARGETS_TO_BUILD ${LLVM_TARGETS_TO_BUILD} pur pta)
+set(LLVM_TARGETS_TO_BUILD ${LLVM_TARGETS_TO_BUILD}
+  pur pta pa noalias cca dse static-profiler
+  )
 
 add_llvm_external_project(clang)
 add_llvm_external_project(lld)
