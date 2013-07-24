@@ -21,14 +21,13 @@
 #include "poolalloc/Heuristic.h"
 #include "poolalloc/PoolAllocate.h"
 #include "poolalloc/RuntimeChecks.h"
-#include "llvm/Constants.h"
-#include "llvm/DerivedTypes.h"
-#include "llvm/Instructions.h"
-#include "llvm/Module.h"
-#include "llvm/Constants.h"
-#include "llvm/Attributes.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Attributes.h"
 #include "llvm/Support/CFG.h"
-#include "llvm/DataLayout.h"
+#include "llvm/IR/DataLayout.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/ADT/DepthFirstIterator.h"
@@ -997,9 +996,9 @@ PoolAllocate::MakeFunctionClone (Function & F) {
   Function::ArgumentListType & ArgList = New->getArgumentList ();
   Function::ArgumentListType::iterator arg = ArgList.begin();
   AttrBuilder B;
-  B.addAttribute(Attributes::StructRet);
+  B.addAttribute(Attribute::StructRet);
   for (; arg != ArgList.end(); ++arg) {
-    arg->removeAttr (Attributes::get(F.getContext(), B));
+    arg->removeAttr(AttributeSet::get(F.getContext(), 0, B));
   }
 
   //
@@ -1308,7 +1307,7 @@ static void DeleteIfIsPoolFree(Instruction *I, AllocaInst *PD,
                              std::multimap<AllocaInst*, CallInst*> &PoolFrees) {
   std::multimap<AllocaInst*, CallInst*>::iterator PFI, PFE;
   if (dyn_cast<CallInst>(I))
-    for (tie(PFI,PFE) = PoolFrees.equal_range(PD); PFI != PFE; ++PFI)
+    for (llvm::tie(PFI,PFE) = PoolFrees.equal_range(PD); PFI != PFE; ++PFI)
       if (PFI->second == I) {
         PoolFrees.erase(PFI);
         I->eraseFromParent();
@@ -1366,7 +1365,7 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
   std::set<BasicBlock*> UsingBlocks;
     
   std::multimap<AllocaInst*, Instruction*>::iterator PUI, PUE;
-  tie(PUI, PUE) = PoolUses.equal_range(PD);
+  llvm::tie(PUI, PUE) = PoolUses.equal_range(PD);
   for (; PUI != PUE; ++PUI)
     UsingBlocks.insert(PUI->second->getParent());
     
@@ -1537,7 +1536,7 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
 
   // Delete any pool frees which are not in live blocks, for correctness.
   std::multimap<AllocaInst*, CallInst*>::iterator PFI, PFE;
-  for (tie(PFI,PFE) = PoolFrees.equal_range(PD); PFI != PFE; ) {
+  for (llvm::tie(PFI,PFE) = PoolFrees.equal_range(PD); PFI != PFE; ) {
     CallInst *PoolFree = (PFI++)->second;
     if (!LiveBlocks.count(PoolFree->getParent()) ||
         !PoolFreeLiveBlocks.count(PoolFree->getParent()))

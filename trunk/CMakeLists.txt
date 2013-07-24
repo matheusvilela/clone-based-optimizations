@@ -408,7 +408,7 @@ add_subdirectory(llvm/utils/TableGen ${CMAKE_CURRENT_BINARY_DIR}/utils/TableGen)
 add_subdirectory(llvm/include/llvm  ${CMAKE_CURRENT_BINARY_DIR}/include/llvm)
 
 add_subdirectory(lib)
-#add_subdirectory(poolalloc)
+add_subdirectory(poolalloc)
 add_subdirectory(pa-driver)
 add_subdirectory(add-noalias)
 add_subdirectory(clone-constant-args)

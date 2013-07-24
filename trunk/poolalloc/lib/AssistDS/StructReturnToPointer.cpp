@@ -14,7 +14,7 @@
 #define DEBUG_TYPE "struct-ret"
 
 #include "assistDS/StructReturnToPointer.h"
-#include "llvm/Attributes.h"
+#include "llvm/IR/Attributes.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/ValueMap.h"
@@ -94,9 +94,9 @@ bool StructRet::runOnModule(Module& M) {
         ae= NF->arg_end(); ai != ae; ++ai) {
       fargs.push_back(ai);
     }
-    NF->setAttributes(NF->getAttributes().addAttr(
+    NF->setAttributes(NF->getAttributes().addAttributes(
         M.getContext(), 0, F->getAttributes().getRetAttributes()));
-    NF->setAttributes(NF->getAttributes().addAttr(
+    NF->setAttributes(NF->getAttributes().addAttributes(
         M.getContext(), ~0, F->getAttributes().getFnAttributes()));
     
     for (Function::iterator B = NF->begin(), FE = NF->end(); B != FE; ++B) {      
@@ -120,30 +120,33 @@ bool StructRet::runOnModule(Module& M) {
       AllocaInst *AllocaNew = new AllocaInst(F->getReturnType(), 0, "", CI);
       SmallVector<Value*, 8> Args;
 
-      SmallVector<AttributeWithIndex, 8> AttributesVec;
+      AttributeSet NewCallPAL;
 
       // Get the initial attributes of the call
-      AttrListPtr CallPAL = CI->getAttributes();
-      Attributes RAttrs = CallPAL.getRetAttributes();
-      Attributes FnAttrs = CallPAL.getFnAttributes();
+      AttributeSet CallPAL = CI->getAttributes();
+      AttributeSet RAttrs = CallPAL.getRetAttributes();
+      AttributeSet FnAttrs = CallPAL.getFnAttributes();
       
-      if (RAttrs.hasAttributes())
-        AttributesVec.push_back(AttributeWithIndex::get(0, RAttrs));
+      if (!RAttrs.isEmpty()) {
+        NewCallPAL.addAttributes(CI->getContext(),
+          AttributeSet::ReturnIndex, RAttrs);
+      }
 
       Args.push_back(AllocaNew);
       for(unsigned j =1;j<CI->getNumOperands();j++) {
         Args.push_back(CI->getOperand(j));
         // position in the AttributesVec
-        Attributes Attrs = CallPAL.getParamAttributes(j);
-        if (Attrs.hasAttributes())
-          AttributesVec.push_back(AttributeWithIndex::get(Args.size(), Attrs));
+        AttributeSet Attrs = CallPAL.getParamAttributes(j);
+        if (!Attrs.isEmpty()) {
+          NewCallPAL.addAttributes(CI->getContext(),
+            Args.size(), Attrs);
+        }
       }
       // Create the new attributes vec.
-      if (FnAttrs.hasAttributes())
-        AttributesVec.push_back(AttributeWithIndex::get(~0, FnAttrs));
-
-      AttrListPtr NewCallPAL = AttrListPtr::get(F->getContext(),
-                                                AttributesVec);
+      if (!FnAttrs.isEmpty()) {
+        NewCallPAL.addAttributes(CI->getContext(),
+          AttributeSet::FunctionIndex, FnAttrs);
+      }
 
       CallInst *CallI = CallInst::Create(NF, Args, "", CI);
       CallI->setCallingConv(CI->getCallingConv());
