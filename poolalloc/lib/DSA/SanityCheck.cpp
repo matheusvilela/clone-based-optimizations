@@ -18,6 +18,8 @@
 
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 
 using namespace llvm;
 
@@ -50,8 +52,11 @@ class SanityCheck : public ModulePass {
 // Sanity Check Pass ID
 char SanityCheck::ID = 0;
 
-static RegisterPass<SanityCheck>
-X("dsa-check", "Check consistency of Data Structure Analysis");
+INITIALIZE_PASS(SanityCheck, "dsa-check", "Check consistency of Data Structure Analysis", false, false);
+
+ModulePass *llvm::createSanityCheckPass() { 
+  return new SanityCheck;
+}
 
 //
 // Method: checkLoad()

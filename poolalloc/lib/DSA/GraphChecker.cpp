@@ -28,6 +28,8 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/IR/Value.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 #include <set>
 using namespace llvm;
 
@@ -73,8 +75,12 @@ namespace {
   private:
     void verify(const DSGraph* G);
   };
+}
 
-  RegisterPass<DSGC> X("datastructure-gc", "DSA Graph Checking Pass");
+INITIALIZE_PASS(DSGC, "datastructure-gc", "DSA Graph Checking Pass", false, false);
+
+FunctionPass *llvm::createDSGCPass() { 
+  return new DSGC;
 }
 
 char DSGC::ID;

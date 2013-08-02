@@ -83,6 +83,9 @@ void initializeDSE(PassRegistry&);
 /// initializeStaticProfiler - Initialize the StaticProfiler library.
 void initializeStaticProfiler(PassRegistry&);
 
+/// initializePoolAlloc - Initialize the PoolAlloc library.
+void initializePoolAlloc(PassRegistry&);
+
 void initializeAAEvalPass(PassRegistry&);
 void initializeADCEPass(PassRegistry&);
 void initializeAliasAnalysisAnalysisGroup(PassRegistry&);
@@ -305,6 +308,24 @@ void initializeAddNoaliasPass(PassRegistry&);
 void initializeDeadStoreEliminationPassPass(PassRegistry&);
 void initializeBlockEdgeFrequencyPassPass(PassRegistry&);
 void initializeBranchPredictionPassPass(PassRegistry&);
+void initializeAddressTakenAnalysisPass(PassRegistry&);
+void initializeAllocIdentifyPass(PassRegistry&);
+void initializeBasicDataStructuresPass(PassRegistry&);
+void initializeBUDataStructuresPass(PassRegistry&);
+void initializeCallTargetFinder_EQTDDataStructuresPass(PassRegistry&);
+void initializeCallTargetFinder_TDDataStructuresPass(PassRegistry&);
+void initializeCompleteBUDataStructuresPass(PassRegistry&);
+void initializeDSGraphStatsPass(PassRegistry&);
+void initializeEntryPointAnalysisPass(PassRegistry&);
+void initializeEquivBUDataStructuresPass(PassRegistry&);
+void initializeDSGCPass(PassRegistry&);
+void initializeLocalDataStructuresPass(PassRegistry&);
+void initializeSanityCheckPass(PassRegistry&);
+void initializeStdLibDataStructuresPass(PassRegistry&);
+void initializeTDDataStructuresPass(PassRegistry&);
+void initializeEQTDDataStructuresPass(PassRegistry&);
+void initializeTypeSafety_EQTDDataStructuresPass(PassRegistry&);
+void initializeTypeSafety_TDDataStructuresPass(PassRegistry&);
 }
 
 #endif

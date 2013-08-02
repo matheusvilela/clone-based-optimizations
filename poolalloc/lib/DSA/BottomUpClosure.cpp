@@ -22,6 +22,8 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FormattedStream.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 
 using namespace llvm;
 
@@ -35,9 +37,12 @@ namespace {
   STATISTIC (NumEmptyCalls, "Number of calls we know nothing about");
   STATISTIC (NumRecalculations, "Number of DSGraph recalculations");
   STATISTIC (NumRecalculationsSkipped, "Number of DSGraph recalculations skipped");
+}
 
-  RegisterPass<BUDataStructures>
-  X("dsa-bu", "Bottom-up Data Structure Analysis");
+INITIALIZE_PASS(BUDataStructures, "dsa-bu", "Bottom-up Data Structure Analysis", false, false);
+
+ModulePass *llvm::createBUDataStructuresPass() {
+  return new BUDataStructures;
 }
 
 char BUDataStructures::ID;

@@ -23,18 +23,24 @@
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/Timer.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 using namespace llvm;
 
 #define TIME_REGION(VARNAME, DESC)
 
 namespace {
-  RegisterPass<TDDataStructures>   // Register the pass
-  Y("dsa-td", "Top-down Data Structure Analysis");
-
-  RegisterPass<EQTDDataStructures>   // Register the pass
-  Z("dsa-eqtd", "EQ Top-down Data Structure Analysis");
-
   STATISTIC (NumTDInlines, "Number of graphs inlined");
+}
+
+INITIALIZE_PASS(TDDataStructures, "dsa-td", "Top-down Data Structure Analysis", false, false);
+INITIALIZE_PASS(EQTDDataStructures, "dsa-eqtd", "EQ Top-down Data Structure Analysis", false, false);
+
+ModulePass *llvm::createTDDataStructuresPass() { 
+  return new TDDataStructures;
+}
+ModulePass *llvm::createEQTDDataStructuresPass() { 
+  return new EQTDDataStructures;
 }
 
 char TDDataStructures::ID;

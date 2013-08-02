@@ -23,6 +23,8 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FormattedStream.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 
 #include <ostream>
 using namespace llvm;
@@ -90,9 +92,9 @@ namespace {
     /// Debugging support methods
     void print(llvm::raw_ostream &O, const Module* = 0) const { }
   };
-
-  static RegisterPass<DSGraphStats> Z("dsstats", "DS Graph Statistics");
 }
+
+INITIALIZE_PASS(DSGraphStats, "dsstats", "DS Graph Statistics", false, false);
 
 char DSGraphStats::ID;
 

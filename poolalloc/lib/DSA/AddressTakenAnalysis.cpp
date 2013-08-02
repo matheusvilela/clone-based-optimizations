@@ -23,6 +23,8 @@
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/CallSite.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 
 #include <fstream>
 #include <set>
@@ -85,4 +87,8 @@ void AddressTakenAnalysis::getAnalysisUsage(llvm::AnalysisUsage &AU) const {
 }
 
 char AddressTakenAnalysis::ID;
-static RegisterPass<AddressTakenAnalysis> A("ata", "Identify Address Taken Functions");
+INITIALIZE_PASS(AddressTakenAnalysis, "ata", "Identify Address Taken Functions", false, false);
+
+ModulePass *llvm::createAddressTakenAnalysisPass() {
+  return new AddressTakenAnalysis;
+}

@@ -1,4 +1,4 @@
-//====-- llvm/Analysis/PTA.h - Points-to Alias Analysisused Retvals ----======//
+//====-- llvm/CBO/CBO.h - Clone-based optimizations --------------------======//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -12,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_ANALYSIS_CBO_H
-#define LLVM_ANALYSIS_CBO_H
+#ifndef LLVM_CBO_CBO_H
+#define LLVM_CBO_CBO_H
 
 namespace llvm {
 

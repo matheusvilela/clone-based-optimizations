@@ -27,14 +27,18 @@
 #include "llvm/ADT/EquivalenceClasses.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/FormattedStream.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 #include <fstream>
 using namespace llvm;
 
-namespace {
-  RegisterPass<EquivBUDataStructures> X("dsa-eq",
-                    "Equivalence-class Bottom-up Data Structure Analysis");
-}
+INITIALIZE_PASS(EquivBUDataStructures, "dsa-eq",
+                "Equivalence-class Bottom-up Data Structure Analysis", false, false);
 char EquivBUDataStructures::ID = 0;
+
+ModulePass *llvm::createEquivBUDataStructuresPass() { 
+  return new EquivBUDataStructures;
+}
 
 // runOnModule - Calculate the bottom up data structure graphs for each function
 // in the program.

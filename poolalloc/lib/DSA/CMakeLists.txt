@@ -19,6 +19,7 @@ set(SOURCES
   StdLibPass.cpp
   TopDownClosure.cpp
   TypeSafety.cpp
+  InitStaticModule.cpp
   )
 
 # Build both shared and static libs

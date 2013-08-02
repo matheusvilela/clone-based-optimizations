@@ -20,11 +20,14 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FormattedStream.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 using namespace llvm;
 
-namespace {
-  RegisterPass<CompleteBUDataStructures>
-  X("dsa-cbu", "'Complete' Bottom-up Data Structure Analysis");
+INITIALIZE_PASS(CompleteBUDataStructures, "dsa-cbu", "'Complete' Bottom-up Data Structure Analysis", false, false);
+
+ModulePass *llvm::createCompleteBUDataStructuresPass() {
+  return new CompleteBUDataStructures;
 }
 
 char CompleteBUDataStructures::ID;

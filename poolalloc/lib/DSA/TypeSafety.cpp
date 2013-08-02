@@ -23,11 +23,21 @@
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 
-static RegisterPass<dsa::TypeSafety<EQTDDataStructures> >
-X ("typesafety-eqtd", "Find type-safe pointers");
-static RegisterPass<dsa::TypeSafety<TDDataStructures> >
-Y ("typesafety-td", "Find type-safe pointers");
+typedef dsa::TypeSafety<EQTDDataStructures> TypeSafety_EQTDDataStructures;
+typedef dsa::TypeSafety<TDDataStructures> TypeSafety_TDDataStructures;
+
+INITIALIZE_PASS(TypeSafety_EQTDDataStructures, "typesafety-eqtd", "Find type-safe pointers", false, false);
+INITIALIZE_PASS(TypeSafety_TDDataStructures, "typesafety-td", "Find type-safe pointers", false, false);
+
+ModulePass *llvm::createTypeSafety_EQTDDataStructuresPass() { 
+  return new TypeSafety_EQTDDataStructures;
+}
+ModulePass *llvm::createTypeSafety_TDDataStructuresPass() { 
+  return new TypeSafety_TDDataStructures;
+}
 
 // Pass Statistics
 namespace {

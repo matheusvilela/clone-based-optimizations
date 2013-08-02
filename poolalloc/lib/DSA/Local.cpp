@@ -32,6 +32,8 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/Triple.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 
 #include <fstream>
 
@@ -51,9 +53,6 @@ STATISTIC(NumBoringIntToPtr, "Number of inttoptr used only in cmp");
 //STATISTIC(NumSimpleIntToPtr, "Number of inttoptr from ptrtoint");
 STATISTIC(NumIgnoredInst,       "Number of instructions ignored");
 
-RegisterPass<LocalDataStructures>
-X("dsa-local", "Local Data Structure Analysis");
-
 cl::opt<std::string> hasMagicSections("dsa-magic-sections",
         cl::desc("File with section to global mapping")); //, cl::ReallyHidden);
 }
@@ -61,6 +60,12 @@ cl::opt<bool> TypeInferenceOptimize("enable-type-inference-opts",
                                     cl::desc("Enable Type Inference Optimizations added to DSA."),
                                     cl::Hidden,
                                     cl::init(false));
+
+INITIALIZE_PASS(LocalDataStructures, "dsa-local", "Local Data Structure Analysis", false, false);
+
+ModulePass *llvm::createLocalDataStructuresPass() { 
+  return new LocalDataStructures;
+}
 
 namespace {
   //===--------------------------------------------------------------------===//

@@ -20,6 +20,8 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 
 #include <fstream>
 #include <set>
@@ -99,4 +101,8 @@ bool EntryPointAnalysis::isEntryPoint(const llvm::Function* F) const {
 
 
 char EntryPointAnalysis::ID;
-static RegisterPass<EntryPointAnalysis> A("epa", "Identify EntryPoints");
+INITIALIZE_PASS(EntryPointAnalysis, "epa", "Identify EntryPoints", false, false);
+
+ModulePass *llvm::createEntryPointAnalysisPass() { 
+  return new EntryPointAnalysis;
+}

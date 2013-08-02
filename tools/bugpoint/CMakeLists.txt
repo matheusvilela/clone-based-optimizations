@@ -1,6 +1,6 @@
 set(LLVM_LINK_COMPONENTS asmparser instrumentation scalaropts ipo
     linker bitreader bitwriter irreader vectorize objcarcopts pur pta
-    pa noalias cca dse static-profiler)
+    pa noalias cca dse static-profiler DataStructure)
 
 include_directories(../../llvm/tools/bugpoint)
 

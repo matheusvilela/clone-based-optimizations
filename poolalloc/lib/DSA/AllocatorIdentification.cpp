@@ -21,6 +21,8 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 
 #include <set>
 #include <map>
@@ -194,5 +196,8 @@ void AllocIdentify::getAnalysisUsage(AnalysisUsage &AU) const {
 }
 
 char AllocIdentify::ID = 0;
-static RegisterPass<AllocIdentify>
-X("alloc-identify", "Identify allocator wrapper functions");
+INITIALIZE_PASS(AllocIdentify, "alloc-identify", "Identify allocator wrapper functions", false, false);
+
+ModulePass *llvm::createAllocIdentifyPass() {
+  return new AllocIdentify;
+}
