@@ -24,11 +24,16 @@
 #include "llvm/Support/InstIterator.h"
 #include "llvm/InstVisitor.h"
 #include "llvm/Support/GetElementPtrTypeIterator.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 
 using namespace llvm;
 
-static RegisterPass<BasicDataStructures>
-X("dsa-basic", "Basic Data Structure Analysis(No Analysis)");
+INITIALIZE_PASS(BasicDataStructures, "dsa-basic", "Basic Data Structure Analysis(No Analysis)", false, false);
+
+ModulePass *llvm::createBasicDataStructuresPass() {
+  return new BasicDataStructures;
+}
 
 char BasicDataStructures::ID = 0;
 

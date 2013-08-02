@@ -26,11 +26,25 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 #include <ostream>
 using namespace llvm;
 
-RegisterPass<dsa::CallTargetFinder<EQTDDataStructures> > X("calltarget-eqtd","Find Call Targets (uses DSA-EQTD)");
-RegisterPass<dsa::CallTargetFinder<TDDataStructures> > Y("calltarget-td","Find Call Targets (uses DSA-TD)");
+typedef dsa::CallTargetFinder<EQTDDataStructures> CallTargetFinder_EQTDDataStructures;
+typedef dsa::CallTargetFinder<TDDataStructures> CallTargetFinder_TDDataStructures;
+
+INITIALIZE_PASS(CallTargetFinder_EQTDDataStructures, "calltarget-eqtd","Find Call Targets (uses DSA-EQTD)", false, false);
+INITIALIZE_PASS(CallTargetFinder_TDDataStructures, "calltarget-td","Find Call Targets (uses DSA-TD)", false, false);
+
+ModulePass *llvm::createCallTargetFinder_EQTDDataStructuresPass() {
+  return new CallTargetFinder_EQTDDataStructures;
+}
+
+ModulePass *llvm::createCallTargetFinder_TDDataStructuresPass() {
+  return new CallTargetFinder_TDDataStructures;
+}
+
 namespace {
   STATISTIC (DirCall, "Number of direct calls");
   STATISTIC (IndCall, "Number of indirect calls");

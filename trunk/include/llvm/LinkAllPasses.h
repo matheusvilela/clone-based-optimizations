@@ -38,6 +38,7 @@
 #include "llvm/Transforms/PUR.h"
 #include "llvm/Analysis/PTA.h"
 #include "llvm/CBO/CBO.h"
+#include "llvm/poolalloc/poolalloc.h"
 #include <cstdlib>
 
 namespace {
@@ -175,6 +176,24 @@ namespace {
       (void) llvm::createDeadStoreEliminationPassPass();
       (void) llvm::createBlockEdgeFrequencyPassPass();
       (void) llvm::createBranchPredictionPassPass();
+      (void) llvm::createAddressTakenAnalysisPass();
+      (void) llvm::createAllocIdentifyPass();
+      (void) llvm::createBasicDataStructuresPass();
+      (void) llvm::createBUDataStructuresPass();
+      (void) llvm::createCallTargetFinder_EQTDDataStructuresPass();
+      (void) llvm::createCallTargetFinder_TDDataStructuresPass();
+      (void) llvm::createCompleteBUDataStructuresPass();
+      (void) llvm::createDataStructureStatsPass();
+      (void) llvm::createEntryPointAnalysisPass();
+      (void) llvm::createEquivBUDataStructuresPass();
+      (void) llvm::createDSGCPass();
+      (void) llvm::createLocalDataStructuresPass();
+      (void) llvm::createSanityCheckPass();
+      (void) llvm::createStdLibDataStructuresPass();
+      (void) llvm::createTDDataStructuresPass();
+      (void) llvm::createEQTDDataStructuresPass();
+      (void) llvm::createTypeSafety_EQTDDataStructuresPass();
+      (void) llvm::createTypeSafety_TDDataStructuresPass();
 
       (void)new llvm::IntervalPartition();
       (void)new llvm::FindUsedTypes();

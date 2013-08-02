@@ -136,6 +136,7 @@ int main(int argc, char **argv) {
   initializeNoAlias(Registry);
   initializeDSE(Registry);
   initializeStaticProfiler(Registry);
+  initializePoolAlloc(Registry);
   
   cl::ParseCommandLineOptions(argc, argv,
                               "LLVM automatic testcase reducer. See\nhttp://"

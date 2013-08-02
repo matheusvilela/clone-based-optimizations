@@ -26,11 +26,17 @@
 #include "llvm/Support/Timer.h"
 #include <iostream>
 #include "llvm/IR/Module.h"
+#include "llvm/poolalloc/poolalloc.h"
+#include "llvm/InitializePasses.h"
 
 using namespace llvm;
 
-static RegisterPass<StdLibDataStructures>
-X("dsa-stdlib", "Standard Library Local Data Structure Analysis");
+INITIALIZE_PASS(StdLibDataStructures, "dsa-stdlib",
+                "Standard Library Local Data Structure Analysis", false, false);
+
+ModulePass *llvm::createStdLibDataStructuresPass() { 
+  return new StdLibDataStructures;
+}
 
 STATISTIC(NumNodesFoldedInStdLib,    "Number of nodes folded in std lib");
 
