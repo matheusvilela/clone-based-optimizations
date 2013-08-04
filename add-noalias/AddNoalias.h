@@ -16,7 +16,9 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#include "PADriver.h"
+#include "llvm/Analysis/AliasSetTracker.h"
+#include "llvm/Analysis/AliasAnalysis.h"
+#include "llvm/Analysis/MemoryBuiltins.h"
 
 namespace llvm {
   STATISTIC(NoAliasPotentialFunctions, "Counts number of functions");
@@ -31,7 +33,7 @@ namespace llvm {
     std::map< User*, std::vector< std::pair<Argument*, Value*> > > arguments;
     std::map< Function*, std::vector<User*> > fn2Clone;
 
-    PADriver* PAD;
+    AliasAnalysis *AA;
     void collectFn2Clone();
     bool cloneFunctions();
     void fillCloneContent(Function* original, Function* clonedFn);
