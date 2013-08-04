@@ -11,6 +11,9 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Analysis/AliasSetTracker.h"
+#include "llvm/Analysis/AliasAnalysis.h"
+#include "llvm/Analysis/MemoryBuiltins.h"
 #include "PADriver.h"
 
 namespace llvm {
@@ -34,15 +37,16 @@ namespace llvm {
     //     - Clone the function, removing the store
     //     - Change the call
 
-    PADriver* PAD;
+    //PADriver* PAD;
+    AliasAnalysis *AA;
     Function *currentFn;
 
    public:
     static char ID;
 
     // IN and OUT sets for the Dead Store Analysis
-    std::map<const Instruction*, std::set<int> > inValues;
-    std::map<const Instruction*, std::set<int> > outValues;
+    std::map<const Instruction*, AliasSetTracker* > inValues;
+    std::map<const Instruction*, AliasSetTracker* > outValues;
 
     DeadStoreEliminationPass();
 
@@ -53,6 +57,6 @@ namespace llvm {
     bool analyzeBasicBlock(BasicBlock &BB);
     void print(raw_ostream &O, const Module *M) const;
     void printAnalysis(raw_ostream &O) const;
-    void printSet(raw_ostream &O, const std::set<int> &myset) const;
+    void printSet(raw_ostream &O, AliasSetTracker &myset) const;
   };
 }

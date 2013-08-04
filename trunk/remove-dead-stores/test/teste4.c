@@ -8,9 +8,8 @@ int main(int argc, char** argv) {
 
   if (argc) {
     *p = 0;
-  } else {
-    *p = 1;
   }
+  *p = 1;
 
 
   int x = *p;
