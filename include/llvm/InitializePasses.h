@@ -308,6 +308,7 @@ void initializeAddNoaliasPass(PassRegistry&);
 void initializeDeadStoreEliminationPassPass(PassRegistry&);
 void initializeBlockEdgeFrequencyPassPass(PassRegistry&);
 void initializeBranchPredictionPassPass(PassRegistry&);
+void initializeStaticFunctionCostPassPass(PassRegistry&);
 void initializeAddressTakenAnalysisPass(PassRegistry&);
 void initializeAllocIdentifyPass(PassRegistry&);
 void initializeBasicDataStructuresPass(PassRegistry&);

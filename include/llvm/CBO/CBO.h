@@ -23,6 +23,7 @@ ModulePass *createNoAliasPass();
 ModulePass *createDeadStoreEliminationPassPass();
 FunctionPass *createBlockEdgeFrequencyPassPass();
 FunctionPass *createBranchPredictionPassPass();
+FunctionPass *createStaticFunctionCostPassPass();
 
 } // End llvm namespace
 

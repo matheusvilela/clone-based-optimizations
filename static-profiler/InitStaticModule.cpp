@@ -7,6 +7,7 @@ using namespace llvm;
 void llvm::initializeStaticProfiler(PassRegistry &Registry) {
   initializeBlockEdgeFrequencyPassPass(Registry);
   initializeBranchPredictionPassPass(Registry);
+  initializeStaticFunctionCostPassPass(Registry);
 }
 
 /// LLVMInitializeCustom - C binding for initializeCustom.
