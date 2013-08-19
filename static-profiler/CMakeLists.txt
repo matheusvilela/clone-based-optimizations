@@ -9,6 +9,7 @@ add_llvm_library(LLVMstatic-profiler
   BranchPredictionInfo.h
   BranchPredictionPass.cpp
   BranchPredictionPass.h
+  ClonesDestroyer.cpp
   StaticFunctionCost.cpp
   StaticFunctionCost.h
   InitStaticModule.cpp

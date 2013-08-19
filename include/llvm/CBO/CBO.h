@@ -21,6 +21,7 @@ ModulePass *createPADriverPass();
 ModulePass *createCloneConstantArgsPass();
 ModulePass *createNoAliasPass();
 ModulePass *createDeadStoreEliminationPassPass();
+ModulePass *createClonesDestroyerPass();
 FunctionPass *createBlockEdgeFrequencyPassPass();
 FunctionPass *createBranchPredictionPassPass();
 FunctionPass *createStaticFunctionCostPassPass();

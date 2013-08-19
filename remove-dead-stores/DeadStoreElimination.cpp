@@ -3,8 +3,6 @@
 #include "llvm/InitializePasses.h"
 #include "llvm/CBO/CBO.h"
 
-#undef DEBUG_TYPE
-#define DEBUG_TYPE "dse"
 
 using namespace llvm;
 
@@ -101,9 +99,9 @@ bool DeadStoreEliminationPass::removeDeadStores(BasicBlock &BB, Function &F) {
     if (formalArg->getType()->isPointerTy()) {
       uint64_t size = getPointerSize(formalArg, *AA);
       if (size == AliasAnalysis::UnknownSize) {
-        errs() << "UnknownSize\n";
+        DEBUG(errs() << "UnknownSize\n");
         size = AA->getTypeStoreSize(formalArg->getType());
-        if (size == AliasAnalysis::UnknownSize) errs() << "UnknownSize[2]\n";
+        if (size == AliasAnalysis::UnknownSize) DEBUG(errs() << "UnknownSize[2]\n");
       }
       argAST->add(formalArg, size, NULL); //formalArg->getMetadata(LLVMContext::MD_tbaa));
     }
@@ -122,7 +120,7 @@ bool DeadStoreEliminationPass::removeDeadStores(BasicBlock &BB, Function &F) {
       AliasSetTracker* storeAST = new AliasSetTracker(*AA);
       storeAST->add(*outValues[inst]);
       storeAST->add(*argAST);
-      errs() << "===\n";
+      DEBUG(errs() << "===\n");
       for (AliasSetTracker::iterator it = storeAST->begin(); it != storeAST->end(); ++it) {
         (*it).print(errs());
       }
@@ -138,9 +136,9 @@ bool DeadStoreEliminationPass::removeDeadStores(BasicBlock &BB, Function &F) {
       } else {
         DEBUG(errs() << "Didnt passed (3)\n");
         for (AliasSetTracker::iterator it = storeAST->begin(); it != storeAST->end(); ++it) {
-          (*it).print(errs());
+          DEBUG((*it).print(errs()));
         }
-        errs() << "...\n";
+        DEBUG(errs() << "...\n");
       }
       delete storeAST;
     }

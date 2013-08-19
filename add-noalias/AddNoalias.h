@@ -1,3 +1,5 @@
+#undef DEBUG_TYPE
+#define DEBUG_TYPE "add-noalias"
 #include <sstream>
 #include <ios>
 #include <fstream>
@@ -21,11 +23,11 @@
 #include "llvm/Analysis/MemoryBuiltins.h"
 
 namespace llvm {
-  STATISTIC(NoAliasPotentialFunctions, "Counts number of functions");
-  STATISTIC(NoAliasClonedFunctions,    "Counts number of cloned functions");
-  STATISTIC(NoAliasPotentialCalls,     "Counts number of replaceable calls");
-  STATISTIC(NoAliasClonedCalls,        "Counts number of replaced calls");
-  STATISTIC(NoAliasTotalCalls,         "Counts number of calls");
+  STATISTIC(NoAliasPotentialFunctions, "Number of functions");
+  STATISTIC(NoAliasClonedFunctions,    "Number of cloned functions");
+  STATISTIC(NoAliasPotentialCalls,     "Number of replaceable calls");
+  STATISTIC(NoAliasClonedCalls,        "Number of replaced calls");
+  STATISTIC(NoAliasTotalCalls,         "Number of calls");
 
   class AddNoalias : public ModulePass {
 

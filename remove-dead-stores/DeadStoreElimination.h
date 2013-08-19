@@ -1,3 +1,5 @@
+#undef DEBUG_TYPE
+#define DEBUG_TYPE "dead-store-elimination"
 #include <sstream>
 #include <string>
 #include <iostream>
@@ -17,7 +19,7 @@
 #include "PADriver.h"
 
 namespace llvm {
-  STATISTIC(RemovedStores, "Counts number of remove stores.");
+  STATISTIC(RemovedStores, "Number of removed stores.");
   class DeadStoreEliminationPass : public ModulePass {
 
     // Successors and Predecessor basic blocks on the CFG
