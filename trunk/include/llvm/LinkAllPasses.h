@@ -177,6 +177,7 @@ namespace {
       (void) llvm::createBlockEdgeFrequencyPassPass();
       (void) llvm::createBranchPredictionPassPass();
       (void) llvm::createStaticFunctionCostPassPass();
+      (void) llvm::createClonesDestroyerPass();
       (void) llvm::createAddressTakenAnalysisPass();
       (void) llvm::createAllocIdentifyPass();
       (void) llvm::createBasicDataStructuresPass();

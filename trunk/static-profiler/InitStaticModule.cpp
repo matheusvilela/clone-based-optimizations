@@ -8,6 +8,7 @@ void llvm::initializeStaticProfiler(PassRegistry &Registry) {
   initializeBlockEdgeFrequencyPassPass(Registry);
   initializeBranchPredictionPassPass(Registry);
   initializeStaticFunctionCostPassPass(Registry);
+  initializeClonesDestroyerPass(Registry);
 }
 
 /// LLVMInitializeCustom - C binding for initializeCustom.

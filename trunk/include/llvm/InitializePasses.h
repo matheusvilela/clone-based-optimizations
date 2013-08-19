@@ -309,6 +309,7 @@ void initializeDeadStoreEliminationPassPass(PassRegistry&);
 void initializeBlockEdgeFrequencyPassPass(PassRegistry&);
 void initializeBranchPredictionPassPass(PassRegistry&);
 void initializeStaticFunctionCostPassPass(PassRegistry&);
+void initializeClonesDestroyerPass(PassRegistry&);
 void initializeAddressTakenAnalysisPass(PassRegistry&);
 void initializeAllocIdentifyPass(PassRegistry&);
 void initializeBasicDataStructuresPass(PassRegistry&);
