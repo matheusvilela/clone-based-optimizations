@@ -47,28 +47,19 @@ void CloneConstantArgs::findConstantArgs(Module &M) {
         if (!CS.isCallee(UI))
           continue;
 
+        Function::arg_iterator formalArgIter = F->arg_begin();
         CallSite::arg_iterator actualArgIter = CS.arg_begin();
         int size = F->arg_size();
 
-        bool hasConstantArgs = true;
-        for (int i = 0; i < size; ++i, ++actualArgIter) {
+        for (int i = 0; i < size; ++i, ++actualArgIter, ++formalArgIter) {
           Value *actualArg = *actualArgIter;
 
-          if (!isa<Constant>(actualArg)) {
-            hasConstantArgs = false;
-            break;
+          if (isa<Constant>(actualArg)) {
+            arguments[U].push_back(std::make_pair(formalArgIter, actualArg));
           }
         }
  
         CallsCount++;
-        if (hasConstantArgs) {
-          actualArgIter = CS.arg_begin();
-          Function::arg_iterator formalArgIter = F->arg_begin();
-          for (int i = 0; i < size; ++i, ++actualArgIter, ++formalArgIter) {
-            Value *actualArg = *actualArgIter;
-            arguments[U].push_back(std::make_pair(formalArgIter, actualArg));
-          }
-        }
       }
     }
   }
@@ -189,8 +180,10 @@ Function* CloneConstantArgs::cloneFunctionWithConstArgs(Function *Fn, User* call
   for (Function::arg_iterator FnArgIter = Fn->arg_begin();
       FnArgIter != Fn->arg_end(); ++FnArgIter, ++NFArgIter) {
     Value *formalArg = NFArgIter;
-    Value *actualArg = argsMap[FnArgIter];
-    formalArg->replaceAllUsesWith(actualArg);
+    if (argsMap.count(FnArgIter)) {
+      Value *actualArg = argsMap[FnArgIter];
+      formalArg->replaceAllUsesWith(actualArg);
+    }
   }
 
   // Insert the clone function before the original
