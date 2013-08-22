@@ -16,6 +16,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CallSite.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/Regex.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/InitializePasses.h"
@@ -86,82 +87,117 @@ void ClonesDestroyer::print(raw_ostream& O, const Module* M) const {
   O << "Number of calls restored: " << CallsRestored << '\n';
   O << "Number of orphans dropped: " << OrphansDropped << '\n';
   O << "Highest profit: " << HighestProfit << '\n';
-  O << "Obtained on function" << highestProfitFn << '\n';
+  O << "Obtained on function " << highestProfitFn << '\n';
 }
 
 void ClonesDestroyer::collectFunctions(Function &F) {
   std::string fnName = F.getName();
-  std::string ending = ".noalias";
 
-  bool isCloned = (fnName.length() >= ending.length() && fnName.compare(fnName.length() - ending.length(), ending.length(), ending) == 0);
+  Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+))+");
+  bool isCloned = ending.match(fnName);
 
   std::string originalName = fnName;
   if (isCloned) {
-    originalName.replace(originalName.end()-8, originalName.end(), "");
+    Regex noaliasend("\\.noalias");
+    Regex constargsend("\\.constargs[0-9]+");
+
+    if (noaliasend.match(fnName)) {
+      originalName = noaliasend.sub("", originalName);
+    }
+    if (constargsend.match(fnName)) {
+      originalName = constargsend.sub("", originalName);
+    }
   }
   functions[originalName].push_back(&F);
-
 }
 
 bool ClonesDestroyer::removeWorthlessClones() {
 
+  // Get cloned functions and their base function
+  std::map<Function*, std::vector<Function*> > fn2clonedFns;
   for (std::map<std::string, std::vector<Function*> >::iterator it = functions.begin(); it != functions.end(); ++it) {
     int numFunctions = it->second.size();
-    if (numFunctions != 2) continue;
 
-    double originalCost, clonedCost;
-    Function *clonedFn, *originalFn;
+    Function *originalFn = NULL;
+    std::vector<Function*> clonedFns;
     for (int i = 0; i < numFunctions; ++i) {
       Function* F = it->second[i];
       std::string fnName = F->getName();
-      std::string ending = ".noalias";
-      bool isCloned = (fnName.length() >= ending.length() && fnName.compare(fnName.length() - ending.length(), ending.length(), ending) == 0);
-      if (isCloned) clonedFn = F;
-      else originalFn = F;
+      Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+))+");
+      bool isCloned = ending.match(fnName);
+      if (isCloned) {
+        clonedFns.push_back(F);
+      } else {
+        originalFn = F;
+      }
     }
-
-    // Estimate functions costs with the static profiler
-    SFCP = &getAnalysis<StaticFunctionCostPass>(*originalFn);
-    originalCost = SFCP->getFunctionCost();
-    SFCP = &getAnalysis<StaticFunctionCostPass>(*clonedFn);
-    clonedCost = SFCP->getFunctionCost();
-
-    // Try to remove worthless clones
-    if (clonedCost >= originalCost) {
-      if(substCallingInstructions(clonedFn, originalFn)) {
-        ClonesRemoved++;
-      }
-      if (clonedFn->use_empty()) {
-        clonedFn->dropAllReferences();
-        clonedFn->removeFromParent();
-      }
-    } else {
-      // Get profit
-      unsigned int profit = originalCost - clonedCost;
-      if (profit > HighestProfit) {
-        HighestProfit = profit;
-        highestProfitFn = originalFn->getName();
-      }
-
-      // Drop orphan functions 
-      if(originalFn->use_empty()) {
-        originalFn->dropAllReferences();
-        originalFn->removeFromParent();
-        OrphansDropped++;
-      }
+    if (originalFn == NULL) continue;
+    for (std::vector<Function*>::iterator it2 = clonedFns.begin(); it2 != clonedFns.end(); ++it2) {
+      Function* clonedFn = *it2;
+      fn2clonedFns[originalFn].push_back(clonedFn);
     }
   }
+
+  for (std::map<Function*, std::vector<Function*> >::iterator it = fn2clonedFns.begin(); it != fn2clonedFns.end(); ++it) {
+    Function *originalFn = it->first;
+    std::vector<Function*> clonedFns = it->second;
+    double originalCost, clonedCost;
+
+    // Estimate original function cost with the static profiler
+    SFCP = &getAnalysis<StaticFunctionCostPass>(*originalFn);
+    originalCost = SFCP->getFunctionCost();
+
+    for (std::vector<Function*>::iterator it2 = clonedFns.begin(); it2 != clonedFns.end(); ++it2) {
+      Function* clonedFn = *it2;
+
+      // Estimate cloned function cost with the static profiler
+      SFCP = &getAnalysis<StaticFunctionCostPass>(*clonedFn);
+      clonedCost = SFCP->getFunctionCost();
+
+      // Try to remove worthless clones
+      if (clonedCost >= originalCost) {
+        if(substCallingInstructions(clonedFn, originalFn)) {
+          ClonesRemoved++;
+        }
+
+        if (clonedFn->use_empty()) {
+          clonedFn->dropAllReferences();
+          clonedFn->removeFromParent();
+        }
+      } else {
+        // Get profit
+        unsigned int profit = originalCost - clonedCost;
+        if (profit > HighestProfit) {
+          HighestProfit = profit;
+          highestProfitFn = originalFn->getName();
+        }
+      }
+    }
+    // Drop orphan functions
+    if(originalFn->use_empty()) {
+      originalFn->dropAllReferences();
+      originalFn->removeFromParent();
+      OrphansDropped++;
+    }
+  }
+
   return ClonesRemoved > 0;
 }
 
 bool ClonesDestroyer::substCallingInstructions(Function* oldFn, Function* newFn) {
-  if (newFn->arg_size() != oldFn->arg_size()) {
-    return false;
-  } else if (newFn->getReturnType() != oldFn->getReturnType()) {
+
+  // Verify if functions are 'compatible'
+  FunctionType *newFTy = newFn->getFunctionType();
+  FunctionType *oldFTy = oldFn->getFunctionType();
+  if (newFTy->getNumParams() != oldFTy->getNumParams() || newFTy->getReturnType() != oldFTy->getReturnType()) {
     return false;
   }
- 
-  int callsRestored = 0;
+  for (unsigned i = 0, e = oldFTy->getNumParams(); i != e; ++i) {
+    if (oldFTy->getParamType(i) != newFTy->getParamType(i)) {
+      return false;
+    }
+  }
+
   // Get uses
   std::vector<User*> callers;
   for (Value::use_iterator UI = oldFn->use_begin(); UI != oldFn->use_end(); ++UI) {
@@ -170,19 +206,10 @@ bool ClonesDestroyer::substCallingInstructions(Function* oldFn, Function* newFn)
     callers.push_back(U);
   }
 
-  FunctionType *FTy = newFn->getFunctionType();
+  // Restore calls
+  int callsRestored = 0;
   for (std::vector<User*>::iterator it = callers.begin(); it != callers.end(); ++it) {
     User* caller = *it;
-
-    // Verify that all arguments to the call match the function type...
-    if (caller->getNumOperands() != FTy->getNumParams()) continue;
-    for (unsigned i = 0, e = FTy->getNumParams(); i != e; ++i) {
-      if (caller->getOperand(i+1)->getType() != FTy->getParamType(i)) {
-        continue;
-      }
-    }
-
-    // Restore calls
     callsRestored++;
     if (isa<CallInst>(caller)) {
       CallInst *callInst = dyn_cast<CallInst>(caller);
@@ -192,7 +219,9 @@ bool ClonesDestroyer::substCallingInstructions(Function* oldFn, Function* newFn)
       invokeInst->setCalledFunction(newFn);
     }
   }
+
   CallsRestored += callsRestored;
+
   return callsRestored > 0;
 }
 
