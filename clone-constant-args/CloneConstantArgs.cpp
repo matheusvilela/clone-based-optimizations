@@ -1,3 +1,5 @@
+#undef DEBUG_TYPE
+#define DEBUG_TYPE "clone-constant-args"
 #include "CloneConstantArgs.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/CBO/CBO.h"
@@ -10,7 +12,6 @@ CloneConstantArgs::CloneConstantArgs() : ModulePass(ID) {
   FunctionsCount    = 0;
   CallsCount        = 0;
   ClonesCount       = 0;
-  OrphanedFunctions = 0;
 }
 
 bool CloneConstantArgs::runOnModule(Module &M) {
@@ -18,14 +19,6 @@ bool CloneConstantArgs::runOnModule(Module &M) {
   findConstantArgs(M);
   collectFn2Clone();
   bool modified = cloneFunctions();
-
-  if (modified) {
-    // Remove dead arguments
-    ModulePass *DAE = createDeadArgEliminationPass();
-    DAE->runOnModule(M);
-  }
-
-  print(errs(), &M);
 
   return modified;
 }
@@ -104,7 +97,7 @@ bool CloneConstantArgs::cloneFunctions() {
       if (!clonedFns.count(userArgs)) {
         // Clone function if a proper clone doesnt already exist
         std::stringstream suffix;
-        suffix << "_constargs" << i;
+        suffix << ".constargs" << i;
         Function* NF = cloneFunctionWithConstArgs(it->first, caller, suffix.str());
         replaceCallingInst(caller, NF);
         clonedFns[userArgs] = NF;
@@ -117,11 +110,6 @@ bool CloneConstantArgs::cloneFunctions() {
       CallsReplaced++;
 
       modified = true;
-    }
-    if (it->first->use_empty()) {
-      OrphanedFunctions++;
-      it->first->dropAllReferences();
-      it->first->removeFromParent();
     }
   }
   return modified;
@@ -144,9 +132,6 @@ Function* CloneConstantArgs::cloneFunctionWithConstArgs(Function *Fn, User* call
   // same as the old function
   Function *NF = Function::Create(Fn->getFunctionType(), Fn->getLinkage());
   NF->copyAttributesFrom(Fn);
-
-  // Make the function internal
-  NF->setLinkage(GlobalValue::InternalLinkage);
 
   // After the parameters have been copied, we should copy the parameter
   // names, to ease function inspection afterwards.
@@ -193,8 +178,8 @@ Function* CloneConstantArgs::cloneFunctionWithConstArgs(Function *Fn, User* call
 }
 
 void CloneConstantArgs::print(raw_ostream& O, const Module* M) const {
-  O << "# functions; # cloned functions; # clones; # orphaned functions; # calls; # promissor calls; # replaced calls\n";
-  O << FunctionsCount << ";" << FunctionsCloned << ";" << ClonesCount << ";" << OrphanedFunctions << ";" << CallsCount << ";" << PromissorCalls << ";" << CallsReplaced << "\n";
+  O << "# functions; # cloned functions; # clones; # calls; # promissor calls; # replaced calls\n";
+  O << FunctionsCount << ";" << FunctionsCloned << ";" << ClonesCount << ";" << CallsCount << ";" << PromissorCalls << ";" << CallsReplaced << "\n";
 }
 
 // Register the pass to the LLVM framework
