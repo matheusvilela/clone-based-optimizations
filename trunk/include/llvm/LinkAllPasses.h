@@ -178,6 +178,7 @@ namespace {
       (void) llvm::createBranchPredictionPassPass();
       (void) llvm::createStaticFunctionCostPassPass();
       (void) llvm::createClonesDestroyerPass();
+      (void) llvm::createRecursionIdentifierPass();
       (void) llvm::createAddressTakenAnalysisPass();
       (void) llvm::createAllocIdentifyPass();
       (void) llvm::createBasicDataStructuresPass();

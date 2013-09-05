@@ -83,6 +83,9 @@ void initializeDSE(PassRegistry&);
 /// initializeStaticProfiler - Initialize the StaticProfiler library.
 void initializeStaticProfiler(PassRegistry&);
 
+/// initializeUtils - Initialize the Utils library.
+void initializeUtils(PassRegistry&);
+
 /// initializePoolAlloc - Initialize the PoolAlloc library.
 void initializePoolAlloc(PassRegistry&);
 
@@ -310,6 +313,7 @@ void initializeBlockEdgeFrequencyPassPass(PassRegistry&);
 void initializeBranchPredictionPassPass(PassRegistry&);
 void initializeStaticFunctionCostPassPass(PassRegistry&);
 void initializeClonesDestroyerPass(PassRegistry&);
+void initializeRecursionIdentifierPass(PassRegistry&);
 void initializeAddressTakenAnalysisPass(PassRegistry&);
 void initializeAllocIdentifyPass(PassRegistry&);
 void initializeBasicDataStructuresPass(PassRegistry&);
