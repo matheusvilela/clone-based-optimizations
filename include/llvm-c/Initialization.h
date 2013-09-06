@@ -50,7 +50,7 @@ void LLVMInitializeCCA(LLVMPassRegistryRef&);
 void LLVMInitializeNoAlias(LLVMPassRegistryRef&);
 void LLVMInitializeDSE(LLVMPassRegistryRef&);
 void LLVMInitializeStaticProfiler(LLVMPassRegistryRef&);
-
+void LLVMInitializeUtils(LLVMPassRegistryRef&);
 /**
  * @}
  */
