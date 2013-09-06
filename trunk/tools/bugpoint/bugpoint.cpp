@@ -136,6 +136,7 @@ int main(int argc, char **argv) {
   initializeNoAlias(Registry);
   initializeDSE(Registry);
   initializeStaticProfiler(Registry);
+  initializeUtils(Registry);
   initializePoolAlloc(Registry);
   
   cl::ParseCommandLineOptions(argc, argv,

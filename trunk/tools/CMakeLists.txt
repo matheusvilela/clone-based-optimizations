@@ -57,7 +57,7 @@ endif()
 
 # XXX: Ugly fix for adding our own passes to clang
 set(LLVM_TARGETS_TO_BUILD ${LLVM_TARGETS_TO_BUILD}
-  pur pta pa noalias cca dse static-profiler DataStructure
+  pur pta pa noalias cca dse static-profiler utils DataStructure
   )
 
 add_llvm_external_project(clang)
