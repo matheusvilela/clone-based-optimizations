@@ -1,3 +1,5 @@
+include_directories(../utils)
+
 add_llvm_library(LLVMstatic-profiler
   BlockEdgeFrequencyPass.cpp
   BlockEdgeFrequencyPass.h

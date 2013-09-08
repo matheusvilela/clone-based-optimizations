@@ -1,4 +1,5 @@
 add_llvm_library(LLVMutils
+  RecursionIdentifier.h
   RecursionIdentifier.cpp
   InitStaticModule.cpp
   )
