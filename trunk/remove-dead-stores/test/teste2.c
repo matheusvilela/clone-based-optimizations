@@ -1,15 +1,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-// Store on line 9 is trivially dead
-int main(int argc, char** argv) {
-  int *p = (int*)malloc(sizeof(int));
+int *a;
 
-  if (argc) {
-    *p = 0;
-  }
+void foo() {
+  int *b = (int*)malloc(sizeof(int));
+  b = a;
+  *b = 5;
+}
 
-  *p = 1;
-
-  int x = *p;
+int main() {
+  a = (int*)malloc(sizeof(int));
+  printf("%d", *a);
 }

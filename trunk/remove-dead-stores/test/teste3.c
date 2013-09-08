@@ -1,18 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-//Analysis cannot remove the stores
-//as the definition that reaches the use
-//can come from any of the stores
-int main(int argc, char** argv) {
-  int *p = (int*)malloc(sizeof(int));
+int *a;
 
-  if (argc) {
-    *p = 0;
-  } else {
-    *p = 1;
-  }
-
-
-  int x = *p;
+int main() {
+  int *b = (int*)malloc(sizeof(int));
+  a = b;
+  *b = 5;
 }
