@@ -41,7 +41,15 @@ bool PADriver::runOnModule(Module &M) {
 	//startTime = ru.ru_utime;
 	if (pointerAnalysis == 0) pointerAnalysis = new PointerAnalysis();
 
-	// Collect information
+   // Collect information from global variables
+   for (Module::global_iterator git = M.global_begin(), gitE = M.global_end();
+         git != gitE; ++git) {
+      //errs() << "Global: " << *git << "\n";
+      //errs() << "    -> " << git->getType()->isStructTy() << "\n";
+      handleGlobalVariable(git);
+   }
+   
+   // Collect information from functions
 	for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
 		if (!F->isDeclaration()) {
 			addConstraints(*F);
@@ -77,6 +85,7 @@ bool PADriver::runOnModule(Module &M) {
 	//ss >> deltaTimeStr;
 	//errs() << deltaTimeStr << " Time to perform the pointer analysis\n";
 
+   //errs() << "Num. Instructions: " << numInst << "\n";
 	return false;
 }
 
@@ -180,6 +189,7 @@ void PADriver::addConstraints(Function &F) {
 
 	for (Function::iterator BB = F.begin(), E = F.end(); BB != E; ++BB) {
 		for (BasicBlock::iterator I = BB->begin(), E = BB->end(); I != E; ++I) {
+         numInst++;
 			if (isa<CallInst>(I)) {
 				CallInst *CI = dyn_cast<CallInst>(I);
 
@@ -214,287 +224,7 @@ void PADriver::addConstraints(Function &F) {
 					}
 				case Instruction::GetElementPtr:
 					{
-						GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(I);
-						Value *v = GEPI->getPointerOperand();
-						const PointerType *PoTy = cast<PointerType>(GEPI->getPointerOperandType());
-						const Type *Ty = PoTy->getElementType();
-
-						if (Ty->isStructTy()) {
-							if (phiValues.count(v)) {
-								std::vector<Value*> values = phiValues[v];
-
-								for (unsigned i = 0; i < values.size(); i++) {
-									Value* vv = values[i];
-
-									if (memoryBlocks.count(vv)) {
-										for (unsigned j = 0; j < memoryBlocks[vv].size(); j++) {
-											int i = 0;
-											unsigned pos = 0;
-											bool hasConstantOp = true;
-
-											for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
-												if (i == 1) {
-													if (isa<ConstantInt>(*it))
-														pos = cast<ConstantInt>(*it)->getZExtValue();
-													else
-														hasConstantOp = false;
-												}
-
-												i++;
-											}
-											if (hasConstantOp) {
-												std::vector<int> mems = memoryBlocks[vv][j];
-												int a = Value2Int(I);
-												if (pos < mems.size()) {
-													pointerAnalysis->addAddr(a, mems[pos]);
-													PAAddrCt++;
-												}
-											}
-										}
-									} else {
-										if (memoryBlock.count(vv)) {
-											if (isa<BitCastInst>(vv)) {
-												BitCastInst *BC = dyn_cast<BitCastInst>(vv);
-
-												Value *v2 = BC->getOperand(0);
-
-												if (memoryBlock.count(v2)) {
-													int i = 0;
-													unsigned pos = 0;
-													bool hasConstantOp = true;
-
-													for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
-														if (i == 1) {
-															if (isa<ConstantInt>(*it))
-																pos = cast<ConstantInt>(*it)->getZExtValue();
-															else
-																hasConstantOp = false;
-														}
-
-														i++;
-													}
-
-													if (hasConstantOp) {
-														std::vector<int> mems = memoryBlock[v2];
-														int parent = mems[0];
-														if (memoryBlock2.count(parent)) {
-															std::vector<int> mems2 = memoryBlock2[parent];
-
-															int a = Value2Int(I);
-															if (pos < mems2.size()) {
-																pointerAnalysis->addAddr(a, mems2[pos]);
-																PAAddrCt++;
-															}
-														}
-													}
-												}
-											} else {
-												int i = 0;
-												unsigned pos = 0;
-												bool hasConstantOp = true;
-
-												for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
-													if (i == 1) {
-														if (isa<ConstantInt>(*it))
-															pos = cast<ConstantInt>(*it)->getZExtValue();
-														else
-															hasConstantOp = false;
-													}
-
-													i++;
-												}
-
-												if (hasConstantOp) {
-													std::vector<int> mems = memoryBlock[vv];
-													int a = Value2Int(I);
-													//pointerAnalysis->addBase(a, mems[pos]);
-													if (pos < mems.size()) {
-														pointerAnalysis->addAddr(a, mems[pos]);
-														PAAddrCt++;
-													}
-												}
-											}
-										} else {
-											GetElementPtrInst *GEPI2 = dyn_cast<GetElementPtrInst>(vv);
-
-											if (!GEPI2)
-												goto saida;
-
-											Value *v2 = GEPI2->getPointerOperand();
-
-											if (memoryBlock.count(v2)) {
-												int i = 0;
-												unsigned pos = 0;
-												bool hasConstantOp = true;
-
-												for (User::op_iterator it = GEPI2->idx_begin(), e = GEPI2->idx_end(); it != e; ++it) {
-													if (i == 1) {
-														if (isa<ConstantInt>(*it))
-															pos = cast<ConstantInt>(*it)->getZExtValue();
-														else
-															hasConstantOp = false;
-													}
-
-													i++;
-												}
-
-												if (hasConstantOp) {
-													std::vector<int> mems = memoryBlock[v2];
-													if (pos < mems.size()) {
-														int parent = mems[pos];
-
-														i = 0;
-														unsigned pos2 = 0;
-
-														for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
-															if (i == 1)
-																pos2 = cast<ConstantInt>(*it)->getZExtValue();
-
-															i++;
-														}
-
-														if (memoryBlock2.count(parent)) {
-															std::vector<int> mems2 = memoryBlock2[parent];
-															int a = Value2Int(I);
-
-															if (pos2 < mems2.size()) {
-																pointerAnalysis->addAddr(a, mems2[pos2]);
-																PAAddrCt++;
-																memoryBlock[v] = mems2;
-															}
-														}
-
-													}
-												}
-											}
-										}
-									}
-								}
-							} else {
-								if (memoryBlock.count(v)) {
-									if (isa<BitCastInst>(v)) {
-										BitCastInst *BC = dyn_cast<BitCastInst>(v);
-
-										Value *v2 = BC->getOperand(0);
-
-										if (memoryBlock.count(v2)) {
-											int i = 0;
-											unsigned pos = 0;
-											bool hasConstantOp = true;
-
-											for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
-												if (i == 1) {
-													if (isa<ConstantInt>(*it))
-														pos = cast<ConstantInt>(*it)->getZExtValue();
-													else
-														hasConstantOp = false;
-												}
-
-												i++;
-											}
-
-											if (hasConstantOp) {
-												std::vector<int> mems = memoryBlock[v2];
-												int parent = mems[0];
-												if (memoryBlock2.count(parent)) {
-													std::vector<int> mems2 = memoryBlock2[parent];
-
-													int a = Value2Int(I);
-													if (pos < mems2.size()) {
-														pointerAnalysis->addAddr(a, mems2[pos]);
-														PAAddrCt++;
-													}
-												}
-											}
-										}
-									} else {
-										int i = 0;
-										unsigned pos = 0;
-										bool hasConstantOp = true;
-
-										for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
-											if (i == 1) {
-												if (isa<ConstantInt>(*it))
-													pos = cast<ConstantInt>(*it)->getZExtValue();
-												else
-													hasConstantOp = false;
-											}
-
-											i++;
-										}
-
-										if (hasConstantOp) {
-											std::vector<int> mems = memoryBlock[v];
-											int a = Value2Int(I);
-											//pointerAnalysis->addBase(a, mems[pos]);
-											if (pos < mems.size()) {
-												pointerAnalysis->addAddr(a, mems[pos]);
-												PAAddrCt++;
-											}
-										}
-									}
-								} else {
-									GetElementPtrInst *GEPI2 = dyn_cast<GetElementPtrInst>(v);
-
-									if (!GEPI2)
-										goto saida;
-
-									Value *v2 = GEPI2->getPointerOperand();
-
-									if (memoryBlock.count(v2)) {
-										int i = 0;
-										unsigned pos = 0;
-										bool hasConstantOp = true;
-
-										for (User::op_iterator it = GEPI2->idx_begin(), e = GEPI2->idx_end(); it != e; ++it) {
-											if (i == 1) {
-												if (isa<ConstantInt>(*it))
-													pos = cast<ConstantInt>(*it)->getZExtValue();
-												else
-													hasConstantOp = false;
-											}
-
-											i++;
-										}
-
-										if (hasConstantOp) {
-											std::vector<int> mems = memoryBlock[v2];
-											if (pos < mems.size()) {
-												int parent = mems[pos];
-
-												i = 0;
-												unsigned pos2 = 0;
-
-												for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
-													if (i == 1)
-														pos2 = cast<ConstantInt>(*it)->getZExtValue();
-
-													i++;
-												}
-
-												if (memoryBlock2.count(parent)) {
-													std::vector<int> mems2 = memoryBlock2[parent];
-													int a = Value2Int(I);
-
-													if (pos2 < mems2.size()) {
-														pointerAnalysis->addAddr(a, mems2[pos2]);
-														PAAddrCt++;
-														memoryBlock[v] = mems2;
-													}
-												}
-											}
-										}
-									}
-								}
-							}
-						} else {
-							int a = Value2Int(I);
-							int b = Value2Int(v);
-							pointerAnalysis->addBase(a, b);
-							PABaseCt++;
-						}
-
-saida:
+                  handleGetElementPtr(I);
 						break;
 					}
 				case Instruction::BitCast:
@@ -742,6 +472,332 @@ void PADriver::handleAlloca(Instruction *I) {
 	}
 }
 
+// ============================= //
+
+void PADriver::handleGlobalVariable(GlobalVariable *G) {
+   const Type *Ty = G->getType();
+
+   std::vector<int> mems;
+   unsigned numElems = 1;
+   bool isStruct = false;
+
+   if (Ty->isStructTy()) { // Handle structs
+      const StructType *StTy = dyn_cast<StructType>(Ty);
+      numElems = StTy->getNumElements();
+      isStruct = true;
+   }
+
+   if (!memoryBlock.count(G)) {
+      for (unsigned i = 0; i < numElems; i++) {
+         mems.push_back(getNewMemoryBlock());
+
+         if (isStruct) {
+            const StructType *StTy = dyn_cast<StructType>(Ty);
+
+            if (StTy->getElementType(i)->isStructTy())
+               handleNestedStructs(StTy->getElementType(i), mems[i]);
+         }
+      }
+
+      memoryBlock[G] = mems;
+   } else {
+      mems = memoryBlock[G];
+   }
+
+   for (unsigned i = 0; i < mems.size(); i++) {
+      int a = Value2Int(G);
+      pointerAnalysis->addAddr(a, mems[i]);
+      PAAddrCt++;
+   }
+}
+
+// ============================= //
+
+void PADriver::handleGetElementPtr(Instruction *I) {
+
+   //errs() << "INSIDE GetElementPtrInst \n";
+
+   GetElementPtrInst *GEPI = dyn_cast<GetElementPtrInst>(I);
+   Value *v = GEPI->getPointerOperand();
+   const PointerType *PoTy = cast<PointerType>(GEPI->getPointerOperandType());
+   const Type *Ty = PoTy->getElementType();
+
+   if (Ty->isStructTy()) {
+      if (phiValues.count(v)) {
+         std::vector<Value*> values = phiValues[v];
+
+         for (unsigned i = 0; i < values.size(); i++) {
+            Value* vv = values[i];
+
+            if (memoryBlocks.count(vv)) {
+               for (unsigned j = 0; j < memoryBlocks[vv].size(); j++) {
+                  int i = 0;
+                  unsigned pos = 0;
+                  bool hasConstantOp = true;
+
+                  for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
+                     if (i == 1) {
+                        if (isa<ConstantInt>(*it))
+                           pos = cast<ConstantInt>(*it)->getZExtValue();
+                        else
+                           hasConstantOp = false;
+                     }
+
+                     i++;
+                  }
+                  if (hasConstantOp) {
+                     std::vector<int> mems = memoryBlocks[vv][j];
+                     int a = Value2Int(I);
+                     if (pos < mems.size()) {
+                        pointerAnalysis->addAddr(a, mems[pos]);
+                        PAAddrCt++;
+                     }
+                  }
+               }
+            } else {
+               if (memoryBlock.count(vv)) {
+                  if (isa<BitCastInst>(vv)) {
+                     BitCastInst *BC = dyn_cast<BitCastInst>(vv);
+
+                     Value *v2 = BC->getOperand(0);
+
+                     if (memoryBlock.count(v2)) {
+                        int i = 0;
+                        unsigned pos = 0;
+                        bool hasConstantOp = true;
+
+                        for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
+                           if (i == 1) {
+                              if (isa<ConstantInt>(*it))
+                                 pos = cast<ConstantInt>(*it)->getZExtValue();
+                              else
+                                 hasConstantOp = false;
+                           }
+
+                           i++;
+                        }
+
+                        if (hasConstantOp) {
+                           std::vector<int> mems = memoryBlock[v2];
+                           int parent = mems[0];
+                           if (memoryBlock2.count(parent)) {
+                              std::vector<int> mems2 = memoryBlock2[parent];
+
+                              int a = Value2Int(I);
+                              if (pos < mems2.size()) {
+                                 pointerAnalysis->addAddr(a, mems2[pos]);
+                                 PAAddrCt++;
+                              }
+                           }
+                        }
+                     }
+                  } else {
+                     int i = 0;
+                     unsigned pos = 0;
+                     bool hasConstantOp = true;
+
+                     for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
+                        if (i == 1) {
+                           if (isa<ConstantInt>(*it))
+                              pos = cast<ConstantInt>(*it)->getZExtValue();
+                           else
+                              hasConstantOp = false;
+                        }
+
+                        i++;
+                     }
+
+                     if (hasConstantOp) {
+                        std::vector<int> mems = memoryBlock[vv];
+                        int a = Value2Int(I);
+                        //pointerAnalysis->addBase(a, mems[pos]);
+                        if (pos < mems.size()) {
+                           pointerAnalysis->addAddr(a, mems[pos]);
+                           PAAddrCt++;
+                        }
+                     }
+                  }
+               } else {
+                  GetElementPtrInst *GEPI2 = dyn_cast<GetElementPtrInst>(vv);
+
+                  if (!GEPI2) return;
+
+                  Value *v2 = GEPI2->getPointerOperand();
+
+                  if (memoryBlock.count(v2)) {
+                     int i = 0;
+                     unsigned pos = 0;
+                     bool hasConstantOp = true;
+
+                     for (User::op_iterator it = GEPI2->idx_begin(), e = GEPI2->idx_end(); it != e; ++it) {
+                        if (i == 1) {
+                           if (isa<ConstantInt>(*it))
+                              pos = cast<ConstantInt>(*it)->getZExtValue();
+                           else
+                              hasConstantOp = false;
+                        }
+
+                        i++;
+                     }
+
+                     if (hasConstantOp) {
+                        std::vector<int> mems = memoryBlock[v2];
+                        if (pos < mems.size()) {
+                           int parent = mems[pos];
+
+                           i = 0;
+                           unsigned pos2 = 0;
+
+                           for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
+                              if (i == 1)
+                                 pos2 = cast<ConstantInt>(*it)->getZExtValue();
+
+                              i++;
+                           }
+
+                           if (memoryBlock2.count(parent)) {
+                              std::vector<int> mems2 = memoryBlock2[parent];
+                              int a = Value2Int(I);
+
+                              if (pos2 < mems2.size()) {
+                                 pointerAnalysis->addAddr(a, mems2[pos2]);
+                                 PAAddrCt++;
+                                 memoryBlock[v] = mems2;
+                              }
+                           }
+
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      } else {
+         if (memoryBlock.count(v)) {
+            if (isa<BitCastInst>(v)) {
+               BitCastInst *BC = dyn_cast<BitCastInst>(v);
+
+               Value *v2 = BC->getOperand(0);
+
+               if (memoryBlock.count(v2)) {
+                  int i = 0;
+                  unsigned pos = 0;
+                  bool hasConstantOp = true;
+
+                  for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
+                     if (i == 1) {
+                        if (isa<ConstantInt>(*it))
+                           pos = cast<ConstantInt>(*it)->getZExtValue();
+                        else
+                           hasConstantOp = false;
+                     }
+
+                     i++;
+                  }
+
+                  if (hasConstantOp) {
+                     std::vector<int> mems = memoryBlock[v2];
+                     int parent = mems[0];
+                     if (memoryBlock2.count(parent)) {
+                        std::vector<int> mems2 = memoryBlock2[parent];
+
+                        int a = Value2Int(I);
+                        if (pos < mems2.size()) {
+                           pointerAnalysis->addAddr(a, mems2[pos]);
+                           PAAddrCt++;
+                        }
+                     }
+                  }
+               }
+            } else {
+               int i = 0;
+               unsigned pos = 0;
+               bool hasConstantOp = true;
+
+               for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
+                  if (i == 1) {
+                     if (isa<ConstantInt>(*it))
+                        pos = cast<ConstantInt>(*it)->getZExtValue();
+                     else
+                        hasConstantOp = false;
+                  }
+
+                  i++;
+               }
+
+               if (hasConstantOp) {
+                  std::vector<int> mems = memoryBlock[v];
+                  int a = Value2Int(I);
+                  //pointerAnalysis->addBase(a, mems[pos]);
+                  if (pos < mems.size()) {
+                     pointerAnalysis->addAddr(a, mems[pos]);
+                     PAAddrCt++;
+                  }
+               }
+            }
+         } else {
+            GetElementPtrInst *GEPI2 = dyn_cast<GetElementPtrInst>(v);
+
+            if (!GEPI2) return;
+
+            Value *v2 = GEPI2->getPointerOperand();
+
+            if (memoryBlock.count(v2)) {
+               int i = 0;
+               unsigned pos = 0;
+               bool hasConstantOp = true;
+
+               for (User::op_iterator it = GEPI2->idx_begin(), e = GEPI2->idx_end(); it != e; ++it) {
+                  if (i == 1) {
+                     if (isa<ConstantInt>(*it))
+                        pos = cast<ConstantInt>(*it)->getZExtValue();
+                     else
+                        hasConstantOp = false;
+                  }
+
+                  i++;
+               }
+
+               if (hasConstantOp) {
+                  std::vector<int> mems = memoryBlock[v2];
+                  if (pos < mems.size()) {
+                     int parent = mems[pos];
+
+                     i = 0;
+                     unsigned pos2 = 0;
+
+                     for (User::op_iterator it = GEPI->idx_begin(), e = GEPI->idx_end(); it != e; ++it) {
+                        if (i == 1)
+                           pos2 = cast<ConstantInt>(*it)->getZExtValue();
+
+                        i++;
+                     }
+
+                     if (memoryBlock2.count(parent)) {
+                        std::vector<int> mems2 = memoryBlock2[parent];
+                        int a = Value2Int(I);
+
+                        if (pos2 < mems2.size()) {
+                           pointerAnalysis->addAddr(a, mems2[pos2]);
+                           PAAddrCt++;
+                           memoryBlock[v] = mems2;
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      }
+   } else {
+      //errs() << "  >> I: " << *I << "\n";
+      //errs() << "  >> v: " << *v << "\n";
+      int a = Value2Int(I);
+      int b = Value2Int(v);
+      pointerAnalysis->addBase(a, b);
+      PABaseCt++;
+   }
+}
+
 // ============================= //2
 
 void PADriver::handleNestedStructs(const Type *Ty, int parent) {
@@ -799,6 +855,7 @@ int PADriver::Value2Int(Value *v) {
 	}
 	else {
 		nameMap[n] = "unknown";
+      // errs() << "Unnamed: " << *(v->getType()) << "\n";
 	}
 
 	return n;
