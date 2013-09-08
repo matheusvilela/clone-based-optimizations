@@ -1,5 +1,5 @@
 #undef DEBUG_TYPE
-#define DEBUG_TYPE "remove-worthless-clones"
+#define DEBUG_TYPE "clones-statistcs"
 #include <sstream>
 #include <unistd.h>
 #include <ios>
@@ -22,24 +22,30 @@
 #include "llvm/InitializePasses.h"
 #include "llvm/CBO/CBO.h"
 #include "StaticFunctionCost.h"
+#include "RecursionIdentifier.h"
 
 using namespace llvm;
 
-STATISTIC(ClonesRemoved,  "Number of cloned functions removed");
-STATISTIC(OrphansDropped, "Number of ophan functions removed");
-STATISTIC(CallsRestored,  "Number of calls restored");
-class ClonesDestroyer : public ModulePass {
+STATISTIC(HighestProfit,   "Highest profit cloning a function");
+STATISTIC(RecursiveClones, "Number of clones that are recursive functions");
+STATISTIC(CloningSize,     "Size of cloning");
+STATISTIC(InliningSize,    "Size of inlining");
+class ClonesStatistics : public ModulePass {
 
   std::map<std::string, std::vector<Function*> > functions;
   StaticFunctionCostPass *SFCP;
+  RecursionIdentifier *RI;
+  std::string highestProfitFn;
+
   public:
 
   static char ID;
 
-  ClonesDestroyer() : ModulePass(ID) {
-    ClonesRemoved   = 0;
-    CallsRestored   = 0;
-    OrphansDropped  = 0;
+  ClonesStatistics() : ModulePass(ID) {
+    HighestProfit   = 0;
+    RecursiveClones = 0;
+    CloningSize     = 0;
+    InliningSize    = 0;
   }
 
   // +++++ METHODS +++++ //
@@ -48,18 +54,30 @@ class ClonesDestroyer : public ModulePass {
   bool runOnModule(Module &M);
   virtual void print(raw_ostream& O, const Module* M) const;
   void collectFunctions(Function &F);
-  bool removeWorthlessClones();
-  bool substCallingInstructions(Function* oldFn, Function* newFn);
+  void getStatistics();
+  int getFunctionSize(Function &F);
 };
 
 // ============================= //
 
-void ClonesDestroyer::getAnalysisUsage(AnalysisUsage &AU) const {
+int ClonesStatistics::getFunctionSize(Function &F) {
+  int functionSize = 0;
+  for(Function::iterator it = F.begin(); it != F.end(); it++) {
+     functionSize += it->size();
+  }
+  return functionSize;
+}
+
+void ClonesStatistics::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<StaticFunctionCostPass>();
+  AU.addRequired<RecursionIdentifier>();
   AU.setPreservesAll();
 }
 
-bool ClonesDestroyer::runOnModule(Module &M) {
+bool ClonesStatistics::runOnModule(Module &M) {
+
+  // Get information about recursive functions
+  RI = &getAnalysis<RecursionIdentifier>();
 
   // Collect information
   for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
@@ -67,23 +85,19 @@ bool ClonesDestroyer::runOnModule(Module &M) {
       collectFunctions(*F);
     }
   }
-  bool modified = removeWorthlessClones();
+  getStatistics();
 
-  DEBUG(errs() << "Number of clones removed: " << ClonesRemoved << '\n');
-  DEBUG(errs() << "Number of calls restored: " << CallsRestored << '\n');
-  DEBUG(errs() << "Number of orphans dropped: " << OrphansDropped << '\n');
-  return modified;
+  return false;
 }
 
 // ============================= //
 
-void ClonesDestroyer::print(raw_ostream& O, const Module* M) const {
-  O << "Number of clones removed: " << ClonesRemoved << '\n';
-  O << "Number of calls restored: " << CallsRestored << '\n';
-  O << "Number of orphans dropped: " << OrphansDropped << '\n';
+void ClonesStatistics::print(raw_ostream& O, const Module* M) const {
+  O << "Highest profit: " << HighestProfit << '\n';
+  O << "Obtained on function " << highestProfitFn << '\n';
 }
 
-void ClonesDestroyer::collectFunctions(Function &F) {
+void ClonesStatistics::collectFunctions(Function &F) {
   std::string fnName = F.getName();
 
   Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+))+");
@@ -104,7 +118,7 @@ void ClonesDestroyer::collectFunctions(Function &F) {
   functions[originalName].push_back(&F);
 }
 
-bool ClonesDestroyer::removeWorthlessClones() {
+void ClonesStatistics::getStatistics() {
 
   // Get cloned functions and their base function
   std::map<Function*, std::vector<Function*> > fn2clonedFns;
@@ -140,83 +154,59 @@ bool ClonesDestroyer::removeWorthlessClones() {
     SFCP = &getAnalysis<StaticFunctionCostPass>(*originalFn);
     originalCost = SFCP->getFunctionCost();
 
+    int originalSize = getFunctionSize(*originalFn);
+
+    // Get original function uses
+    std::vector<User*> uses;
+    for (Value::use_iterator UI = originalFn->use_begin(); UI != originalFn->use_end(); ++UI) {
+       User *U = *UI;
+       if (!isa<CallInst>(U) && !isa<InvokeInst>(U)) continue;
+       uses.push_back(U);
+    }
+
+    int clonesSize = 0;
     for (std::vector<Function*>::iterator it2 = clonedFns.begin(); it2 != clonedFns.end(); ++it2) {
       Function* clonedFn = *it2;
+
+      // Verify if the clone is recursive
+      if (RI->isRecursive(clonedFn)) {
+        RecursiveClones++;
+      }
+
+      // Get clone size
+      clonesSize += getFunctionSize(*clonedFn);
+
+      // Get clones uses
+      for (Value::use_iterator UI = clonedFn->use_begin(); UI != clonedFn->use_end(); ++UI) {
+         User *U = *UI;
+         if (!isa<CallInst>(U) && !isa<InvokeInst>(U)) continue;
+         uses.push_back(U);
+      }
 
       // Estimate cloned function cost with the static profiler
       SFCP = &getAnalysis<StaticFunctionCostPass>(*clonedFn);
       clonedCost = SFCP->getFunctionCost();
 
-      // Try to remove worthless clones
-      if (clonedCost >= originalCost) {
-        if(substCallingInstructions(clonedFn, originalFn)) {
-          ClonesRemoved++;
-        }
-
-        if (clonedFn->use_empty()) {
-          clonedFn->dropAllReferences();
-          clonedFn->removeFromParent();
-        }
+      // Get profit
+      unsigned int profit = originalCost - clonedCost;
+      if (profit > HighestProfit) {
+         HighestProfit = profit;
+         highestProfitFn = originalFn->getName();
       }
     }
-    // Drop orphan functions
-    if(originalFn->use_empty()) {
-      originalFn->dropAllReferences();
-      originalFn->removeFromParent();
-      OrphansDropped++;
-    }
+
+    // Estimate cloning and inlining size
+    CloningSize  += clonesSize + originalSize;
+    InliningSize += originalSize * uses.size();
   }
-
-  return ClonesRemoved > 0;
-}
-
-bool ClonesDestroyer::substCallingInstructions(Function* oldFn, Function* newFn) {
-
-  // Verify if functions are 'compatible'
-  FunctionType *newFTy = newFn->getFunctionType();
-  FunctionType *oldFTy = oldFn->getFunctionType();
-  if (newFTy->getNumParams() != oldFTy->getNumParams() || newFTy->getReturnType() != oldFTy->getReturnType()) {
-    return false;
-  }
-  for (unsigned i = 0, e = oldFTy->getNumParams(); i != e; ++i) {
-    if (oldFTy->getParamType(i) != newFTy->getParamType(i)) {
-      return false;
-    }
-  }
-
-  // Get uses
-  std::vector<User*> callers;
-  for (Value::use_iterator UI = oldFn->use_begin(); UI != oldFn->use_end(); ++UI) {
-    User *U = *UI;
-    if (!isa<CallInst>(U) && !isa<InvokeInst>(U)) continue;
-    callers.push_back(U);
-  }
-
-  // Restore calls
-  int callsRestored = 0;
-  for (std::vector<User*>::iterator it = callers.begin(); it != callers.end(); ++it) {
-    User* caller = *it;
-    callsRestored++;
-    if (isa<CallInst>(caller)) {
-      CallInst *callInst = dyn_cast<CallInst>(caller);
-      callInst->setCalledFunction(newFn);
-    } else if (isa<InvokeInst>(caller)) {
-      InvokeInst *invokeInst = dyn_cast<InvokeInst>(caller);
-      invokeInst->setCalledFunction(newFn);
-    }
-  }
-
-  CallsRestored += callsRestored;
-
-  return callsRestored > 0;
 }
 
 // Register the pass to the LLVM framework
-char ClonesDestroyer::ID = 0;
+char ClonesStatistics::ID = 0;
 
-INITIALIZE_PASS(ClonesDestroyer, "remove-worthless-clones",
-                "Statically estimate if a worthless clone should be removed", false, true)
+INITIALIZE_PASS(ClonesStatistics, "clones-statistics",
+                "Get statistics about the cloning optimizations", false, true)
 
-ModulePass *llvm::createClonesDestroyerPass() {
-  return new ClonesDestroyer;
+ModulePass *llvm::createClonesStatisticsPass() {
+  return new ClonesStatistics;
 }

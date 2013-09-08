@@ -23,6 +23,7 @@ ModulePass *createNoAliasPass();
 ModulePass *createDeadStoreEliminationPassPass();
 ModulePass *createClonesDestroyerPass();
 ModulePass *createRecursionIdentifierPass();
+ModulePass *createClonesStatisticsPass();
 FunctionPass *createBlockEdgeFrequencyPassPass();
 FunctionPass *createBranchPredictionPassPass();
 FunctionPass *createStaticFunctionCostPassPass();

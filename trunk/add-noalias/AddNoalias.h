@@ -25,9 +25,9 @@
 namespace llvm {
   STATISTIC(NoAliasPotentialFunctions, "Number of functions");
   STATISTIC(NoAliasClonedFunctions,    "Number of cloned functions");
-  STATISTIC(NoAliasPotentialCalls,     "Number of replaceable calls");
-  STATISTIC(NoAliasClonedCalls,        "Number of replaced calls");
   STATISTIC(NoAliasTotalCalls,         "Number of calls");
+  STATISTIC(NoAliasPotentialCalls,     "Number of promissor calls");
+  STATISTIC(NoAliasClonedCalls,        "Number of replaced calls");
 
   class AddNoalias : public ModulePass {
 
