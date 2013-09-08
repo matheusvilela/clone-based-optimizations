@@ -22,6 +22,7 @@
 #include "llvm/InitializePasses.h"
 #include "llvm/CBO/CBO.h"
 #include "StaticFunctionCost.h"
+#include "RecursionIdentifier.h"
 
 using namespace llvm;
 
@@ -29,20 +30,23 @@ STATISTIC(ClonesRemoved, "Number of cloned functions removed");
 STATISTIC(CallsRestored, "Number of calls restored");
 STATISTIC(OrphansDropped, "Number of ophan functions removed");
 STATISTIC(HighestProfit, "Highest profit cloning a function");
+STATISTIC(RecursiveClones, "Number of clones that are recursive functions");
 class ClonesDestroyer : public ModulePass {
 
   std::map<std::string, std::vector<Function*> > functions;
   StaticFunctionCostPass *SFCP;
+  RecursionIdentifier *RI;
   std::string highestProfitFn;
   public:
 
   static char ID;
 
   ClonesDestroyer() : ModulePass(ID) {
-    ClonesRemoved  = 0;
-    CallsRestored  = 0;
-    OrphansDropped = 0;
-    HighestProfit = 0;
+    ClonesRemoved   = 0;
+    CallsRestored   = 0;
+    OrphansDropped  = 0;
+    HighestProfit   = 0;
+    RecursiveClones = 0;
   }
 
   // +++++ METHODS +++++ //
@@ -59,10 +63,14 @@ class ClonesDestroyer : public ModulePass {
 
 void ClonesDestroyer::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<StaticFunctionCostPass>();
+  AU.addRequired<RecursionIdentifier>();
   AU.setPreservesAll();
 }
 
 bool ClonesDestroyer::runOnModule(Module &M) {
+
+  // Get information about recursive functions
+  RI = &getAnalysis<RecursionIdentifier>();
 
   // Collect information
   for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
@@ -149,6 +157,11 @@ bool ClonesDestroyer::removeWorthlessClones() {
 
     for (std::vector<Function*>::iterator it2 = clonedFns.begin(); it2 != clonedFns.end(); ++it2) {
       Function* clonedFn = *it2;
+
+      // Verify if the clone is recursive
+      if (RI->isRecursive(clonedFn)) {
+        RecursiveClones++;
+      }
 
       // Estimate cloned function cost with the static profiler
       SFCP = &getAnalysis<StaticFunctionCostPass>(*clonedFn);
