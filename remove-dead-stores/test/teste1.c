@@ -1,10 +1,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-//Trivially dead store
+void foo(int* a, int *b) {
+   *a = 5;
+   *b = 7;
+}
+
+int* bar() {
+  int *a = (int*)malloc(sizeof(int));
+  int *b = (int*)malloc(sizeof(int));
+  int *c = (int*)malloc(sizeof(int));
+  foo(a, b);
+  foo(b, c);
+  printf("%d, %d", *a, *c);
+  return c;
+}
+
+
 int main(int argc, char** argv) {
-  int *p = (int*)malloc(sizeof(int));
-  *p = 0;
-  *p = 1;
-  int x = *p;
+   bar();
 }
