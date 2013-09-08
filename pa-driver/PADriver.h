@@ -1,4 +1,3 @@
-
 #include <sstream>
 #include <ios>
 #include <fstream>
@@ -13,24 +12,10 @@
 #include "llvm/Support/CallSite.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/IR/Use.h"
+#include "llvm/IR/Operator.h"
 
 #include "PointerAnalysis.h"
-
-//#include <sstream>
-//#include <sys/time.h>
-//#include <sys/resource.h>
-//#include <string>
-//#include <vector>
-//#include <set>
-//#include <map>
-//#include <iomanip>
-//#include <fstream>
-//#include <cstdlib>
-
-//#include "llvm/Function.h"
-//#include "llvm/Constants.h"
-//#include "llvm/Analysis/DebugInfo.h"
-//#include <llvm/Support/CommandLine.h>
 
 namespace llvm {
 
@@ -60,6 +45,7 @@ class PADriver : public ModulePass {
 	std::map<int, std::vector<int> > memoryBlock2;
 	std::map<Value*, std::vector<Value*> > phiValues;
 	std::map<Value*, std::vector<std::vector<int> > > memoryBlocks;
+   unsigned int numInst;
 
 	static char ID;
 	PointerAnalysis* pointerAnalysis;
@@ -77,6 +63,7 @@ class PADriver : public ModulePass {
 		PARemoves = 0;
 		PAMerges = 0;
 		PAMemUsage = 0;
+      numInst = 0;
 	}
 
 	// +++++ METHODS +++++ //
@@ -88,6 +75,8 @@ class PADriver : public ModulePass {
 	int getNewMemoryBlock();
 	void handleNestedStructs(const Type *Ty, int parent);
 	void handleAlloca(Instruction *I);
+   void handleGlobalVariable(GlobalVariable *G);
+   void handleGetElementPtr(Instruction *I);
 	//Value* Int2Value(int);
 	virtual void print(raw_ostream& O, const Module* M) const;
 	std::string intToStr(int v);
