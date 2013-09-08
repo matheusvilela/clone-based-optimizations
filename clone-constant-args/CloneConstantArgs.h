@@ -19,12 +19,12 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 
 namespace llvm {
-  STATISTIC(FunctionsCount,    "Total number of functions.");
-  STATISTIC(FunctionsCloned,   "Number of functions cloned.");
-  STATISTIC(ClonesCount,       "Number of functions that are clones.");
-  STATISTIC(CallsCount,        "Total number of calls.");
-  STATISTIC(PromissorCalls,    "Number of promissor calls.");
-  STATISTIC(CallsReplaced,     "Number of calls replaced.");
+  STATISTIC(FunctionsCount,  "Number of functions");
+  STATISTIC(FunctionsCloned, "Number of cloned functions");
+  STATISTIC(ClonesCount,     "Number of functions that are clones");
+  STATISTIC(CallsCount,      "Number of calls");
+  STATISTIC(PromissorCalls,  "Number of promissor calls");
+  STATISTIC(CallsReplaced,   "Number of replaced calls");
   class CloneConstantArgs : public ModulePass {
 
     std::map< User*, std::vector< std::pair<Argument*, Value*> > > arguments;
