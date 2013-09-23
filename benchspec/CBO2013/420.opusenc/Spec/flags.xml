@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!DOCTYPE flagsdescription SYSTEM
+       "http://www.spec.org/dtd/cpuflags1.dtd">
+
+<!-- This file defines flags that appear in the sources for 420.opusenc.
+
+  Copyright (C) 2013 Clone-Based Optimizations Authors
+
+-->
+<flagsdescription>
+
+<!-- Normal flags file should suggest a name for themselves -->
+<filename>420.opusenc.flags</filename>
+
+<title>420.opusenc Flags</title>
+
+<header>
+<![CDATA[
+<p>These are flags that appear in the benchmark sources, categorized as to
+whether they are portability candidates, mandatory, or forbidden.
+</p>
+]]>
+</header>
+
+<flag name="DFIXED_POINT" class="forbidden" >
+Compile as fixed-point (for machines without a fast enough FPU)
+</flag>
+
+<flag name="DUSE_ALLOCA" class="forbidden" >
+Make use of alloca
+</flag>
+
+</flagsdescription>
