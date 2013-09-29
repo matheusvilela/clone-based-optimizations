@@ -26,8 +26,11 @@
 
 using namespace llvm;
 
-STATISTIC(NrCloneFns, "Number of cloned functions");
-STATISTIC(NrSubstCallInst, "Number of substituted instructions");
+STATISTIC(NrFns,               "Number of functions");
+STATISTIC(NrCloneFns,          "Number of cloned functions");
+STATISTIC(NrCallInst,          "Number of calls");
+STATISTIC(NrPotentialCallInst, "Number of promissor calls");
+STATISTIC(NrSubstCallInst,     "Number of replaced calls");
 
 namespace {
 
@@ -287,9 +290,35 @@ namespace {
       return CallSite(NC);
     }
 
+    void getStats(Module &M) {
+      for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
+        if (!F->isDeclaration()) {
+          NrFns++;
+
+          if (F->use_empty()) continue;
+
+          for (Value::use_iterator UI = F->use_begin(), E = F->use_end(); UI != E; ++UI) {
+            User *U = *UI;
+
+            if (!isa<CallInst>(U) && !isa<InvokeInst>(U)) continue;
+
+            CallSite CS(cast<Instruction>(U));
+            if (!CS.isCallee(UI)) continue;
+            Function *calledFunction = CS.getCalledFunction();
+
+            NrCallInst++;
+            if (unusedRetvals.count(calledFunction)) {
+              NrPotentialCallInst++;
+            }
+          }
+        }
+      }
+    }
+
     // Prune all unused retvals available in the module
     virtual bool runOnModule(Module &M) {
       visit(M); // Collect unused retvals
+      getStats(M);
       cloneFunctions();
       substCallingInstructions();
       return clonedFunctions.size() > 0;

@@ -49,7 +49,7 @@ class ClonesDestroyer : public ModulePass {
   virtual void print(raw_ostream& O, const Module* M) const;
   void collectFunctions(Function &F);
   bool removeWorthlessClones();
-  bool substCallingInstructions(Function* oldFn, Function* newFn);
+  bool substituteCallSites(Function *Fn, Function *Clone, bool isNoRetOpt);
 };
 
 // ============================= //
@@ -86,19 +86,23 @@ void ClonesDestroyer::print(raw_ostream& O, const Module* M) const {
 void ClonesDestroyer::collectFunctions(Function &F) {
   std::string fnName = F.getName();
 
-  Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+))+");
+  Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.noret))+");
   bool isCloned = ending.match(fnName);
 
   std::string originalName = fnName;
   if (isCloned) {
     Regex noaliasend("\\.noalias");
     Regex constargsend("\\.constargs[0-9]+");
+    Regex noretend("\\.noret");
 
     if (noaliasend.match(fnName)) {
       originalName = noaliasend.sub("", originalName);
     }
     if (constargsend.match(fnName)) {
       originalName = constargsend.sub("", originalName);
+    }
+    if (noretend.match(fnName)) {
+      originalName = noretend.sub("", originalName);
     }
   }
   functions[originalName].push_back(&F);
@@ -116,7 +120,7 @@ bool ClonesDestroyer::removeWorthlessClones() {
     for (int i = 0; i < numFunctions; ++i) {
       Function* F = it->second[i];
       std::string fnName = F->getName();
-      Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+))+");
+      Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.noret))+");
       bool isCloned = ending.match(fnName);
       if (isCloned) {
         clonedFns.push_back(F);
@@ -149,7 +153,9 @@ bool ClonesDestroyer::removeWorthlessClones() {
 
       // Try to remove worthless clones
       if (clonedCost >= originalCost) {
-        if(substCallingInstructions(clonedFn, originalFn)) {
+        Regex noretend("\\.noret");
+        bool isNoRetOpt = noretend.match(clonedFn->getName());
+        if (substituteCallSites(originalFn, clonedFn, isNoRetOpt)) {
           ClonesRemoved++;
         }
 
@@ -170,40 +176,61 @@ bool ClonesDestroyer::removeWorthlessClones() {
   return ClonesRemoved > 0;
 }
 
-bool ClonesDestroyer::substCallingInstructions(Function* oldFn, Function* newFn) {
+// Substitutes all call sites by the original function
+bool ClonesDestroyer::substituteCallSites(Function *Fn, Function *Clone, bool isNoRetOpt = false) {
 
-  // Verify if functions are 'compatible'
-  FunctionType *newFTy = newFn->getFunctionType();
-  FunctionType *oldFTy = oldFn->getFunctionType();
-  if (newFTy->getNumParams() != oldFTy->getNumParams() || newFTy->getReturnType() != oldFTy->getReturnType()) {
+  // If the original and clone parameters don't match, this substitution
+  // is not possible anymore due to previous optimizations.
+  FunctionType *FnTy = Fn->getFunctionType();
+  FunctionType *CloneTy = Clone->getFunctionType();
+
+  if (FnTy->getNumParams() != CloneTy->getNumParams())
     return false;
-  }
-  for (unsigned i = 0, e = oldFTy->getNumParams(); i != e; ++i) {
-    if (oldFTy->getParamType(i) != newFTy->getParamType(i)) {
+
+  if (!isNoRetOpt && FnTy->getReturnType() != CloneTy->getReturnType())
+    return false;
+
+  for (unsigned i = 0, e = FnTy->getNumParams(); i != e; ++i) {
+    Type *FnParamTy = FnTy->getParamType(i);
+    Type *CloneParamTy = CloneTy->getParamType(i);
+    if (FnParamTy != CloneParamTy)
       return false;
-    }
   }
 
-  // Get uses
-  std::vector<User*> callers;
-  for (Value::use_iterator UI = oldFn->use_begin(); UI != oldFn->use_end(); ++UI) {
-    User *U = *UI;
-    if (!isa<CallInst>(U) && !isa<InvokeInst>(U)) continue;
-    callers.push_back(U);
-  }
-
-  // Restore calls
+  // Loop over all of the callers of the clone, transforming the call sites
+  // to pass in the loaded pointers.
+  std::vector<Value*> Args;
   int callsRestored = 0;
-  for (std::vector<User*>::iterator it = callers.begin(); it != callers.end(); ++it) {
-    User* caller = *it;
-    callsRestored++;
-    if (isa<CallInst>(caller)) {
-      CallInst *callInst = dyn_cast<CallInst>(caller);
-      callInst->setCalledFunction(newFn);
-    } else if (isa<InvokeInst>(caller)) {
-      InvokeInst *invokeInst = dyn_cast<InvokeInst>(caller);
-      invokeInst->setCalledFunction(newFn);
+  while (!Clone->use_empty()) {
+    CallSite CS(Clone->use_back());
+    Instruction *Call = CS.getInstruction();
+
+    // Reuse same arguments
+    std::vector<Value*> Args(CS.arg_begin(), CS.arg_end());
+
+    Instruction *New; // Create the new call or invoke instruction.
+    if (InvokeInst *II = dyn_cast<InvokeInst>(Call)) {
+      New = InvokeInst::Create(Fn, II->getNormalDest(),
+          II->getUnwindDest(), Args, "", Call);
+      cast<InvokeInst>(New)->setCallingConv(II->getCallingConv());
+      cast<InvokeInst>(New)->setAttributes(II->getAttributes());
+    } else {
+      CallInst *CI = dyn_cast<CallInst>(Call);
+      New = CallInst::Create(Fn, Args, "", Call);
+      if (CI->isTailCall())
+        cast<CallInst>(New)->setTailCall();
+      cast<CallInst>(New)->setCallingConv(CI->getCallingConv());
+      cast<CallInst>(New)->setAttributes(CI->getAttributes());
     }
+    Args.clear();
+
+    if (!Call->use_empty())
+      Call->replaceAllUsesWith(New);
+
+    // Finally, remove the old call from the program, reducing the
+    // use-count of the clone.
+    Call->getParent()->getInstList().erase(Call);
+    callsRestored++;
   }
 
   CallsRestored += callsRestored;

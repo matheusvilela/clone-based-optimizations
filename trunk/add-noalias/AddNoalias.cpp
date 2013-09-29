@@ -25,8 +25,7 @@ bool AddNoalias::runOnModule(Module &M) {
     if (!F->isDeclaration()) {
       NoAliasPotentialFunctions++;
 
-      if (F->arg_empty() || F->use_empty()) continue;
-
+      if (F->use_empty()) continue;
       for (Value::use_iterator UI = F->use_begin(), E = F->use_end(); UI != E; ++UI) {
         User *U = *UI;
 
@@ -34,14 +33,15 @@ bool AddNoalias::runOnModule(Module &M) {
         if (!isa<CallInst>(U) && !isa<InvokeInst>(U)) continue;
 
         CallSite CS(cast<Instruction>(U));
-        if (!CS.isCallee(UI))
-          continue;
+        if (!CS.isCallee(UI)) continue;
+        NoAliasTotalCalls++;
 
-        CallSite::arg_iterator actualArgIter = CS.arg_begin();
+        if (F->arg_empty()) break;
+
         Function::arg_iterator formalArgIter = F->arg_begin();
+        CallSite::arg_iterator actualArgIter = CS.arg_begin();
         int size = F->arg_size();
 
-        NoAliasTotalCalls++;
         for (int i = 0; i < size; ++i, ++actualArgIter, ++formalArgIter) {
           Value *actualArg = *actualArgIter;
           Value *formalArg = formalArgIter;

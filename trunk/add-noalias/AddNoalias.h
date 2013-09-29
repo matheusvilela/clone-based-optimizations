@@ -1,5 +1,3 @@
-#undef DEBUG_TYPE
-#define DEBUG_TYPE "add-noalias"
 #include <sstream>
 #include <ios>
 #include <fstream>
@@ -22,6 +20,8 @@
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/MemoryBuiltins.h"
 
+#undef DEBUG_TYPE
+#define DEBUG_TYPE "add-noalias"
 namespace llvm {
   STATISTIC(NoAliasPotentialFunctions, "Number of functions");
   STATISTIC(NoAliasClonedFunctions,    "Number of cloned functions");

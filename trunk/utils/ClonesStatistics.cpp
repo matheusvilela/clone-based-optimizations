@@ -1,5 +1,3 @@
-#undef DEBUG_TYPE
-#define DEBUG_TYPE "clones-statistcs"
 #include <sstream>
 #include <unistd.h>
 #include <ios>
@@ -23,6 +21,9 @@
 #include "llvm/CBO/CBO.h"
 #include "StaticFunctionCost.h"
 #include "RecursionIdentifier.h"
+
+#undef DEBUG_TYPE
+#define DEBUG_TYPE "clones-statistics"
 
 using namespace llvm;
 
@@ -87,6 +88,7 @@ bool ClonesStatistics::runOnModule(Module &M) {
   }
   getStatistics();
 
+  DEBUG(print(errs(), &M));
   return false;
 }
 
@@ -100,19 +102,23 @@ void ClonesStatistics::print(raw_ostream& O, const Module* M) const {
 void ClonesStatistics::collectFunctions(Function &F) {
   std::string fnName = F.getName();
 
-  Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+))+");
+  Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.noret))+");
   bool isCloned = ending.match(fnName);
 
   std::string originalName = fnName;
   if (isCloned) {
     Regex noaliasend("\\.noalias");
     Regex constargsend("\\.constargs[0-9]+");
+    Regex noretend("\\.noret");
 
     if (noaliasend.match(fnName)) {
       originalName = noaliasend.sub("", originalName);
     }
     if (constargsend.match(fnName)) {
       originalName = constargsend.sub("", originalName);
+    }
+    if (noretend.match(fnName)) {
+      originalName = noretend.sub("", originalName);
     }
   }
   functions[originalName].push_back(&F);
@@ -130,7 +136,7 @@ void ClonesStatistics::getStatistics() {
     for (int i = 0; i < numFunctions; ++i) {
       Function* F = it->second[i];
       std::string fnName = F->getName();
-      Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+))+");
+      Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.noret))+");
       bool isCloned = ending.match(fnName);
       if (isCloned) {
         clonedFns.push_back(F);

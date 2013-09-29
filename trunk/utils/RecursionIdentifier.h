@@ -1,6 +1,3 @@
-#undef DEBUG_TYPE
-#define DEBUG_TYPE "RecursionIdentifier"
-
 #include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/SCCIterator.h"
 #include "llvm/Analysis/CallGraphSCCPass.h"
@@ -10,6 +7,8 @@
 #include <set>
 #include <vector>
 
+#undef DEBUG_TYPE
+#define DEBUG_TYPE "recursion-identifier"
 namespace llvm {
   STATISTIC(RecursiveFunctions, "Number of recursive functions.");
   class RecursionIdentifier : public ModulePass {
