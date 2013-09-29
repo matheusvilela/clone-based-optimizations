@@ -1,5 +1,3 @@
-#undef DEBUG_TYPE
-#define DEBUG_TYPE "clone-constant-args"
 #include "CloneConstantArgs.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/CBO/CBO.h"
@@ -28,7 +26,7 @@ void CloneConstantArgs::findConstantArgs(Module &M) {
     if (!F->isDeclaration()) {
       FunctionsCount++;
 
-      if (F->arg_empty() || F->use_empty()) continue;
+      if (F->use_empty()) continue;
 
       for (Value::use_iterator UI = F->use_begin(), E = F->use_end(); UI != E; ++UI) {
         User *U = *UI;
@@ -37,8 +35,10 @@ void CloneConstantArgs::findConstantArgs(Module &M) {
         if (!isa<CallInst>(U) && !isa<InvokeInst>(U)) continue;
 
         CallSite CS(cast<Instruction>(U));
-        if (!CS.isCallee(UI))
-          continue;
+        if (!CS.isCallee(UI)) continue;
+        CallsCount++;
+
+        if(F->arg_empty()) break;
 
         Function::arg_iterator formalArgIter = F->arg_begin();
         CallSite::arg_iterator actualArgIter = CS.arg_begin();
@@ -52,7 +52,6 @@ void CloneConstantArgs::findConstantArgs(Module &M) {
           }
         }
  
-        CallsCount++;
       }
     }
   }

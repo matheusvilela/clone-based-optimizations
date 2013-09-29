@@ -18,6 +18,8 @@
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
+#undef DEBUG_TYPE
+#define DEBUG_TYPE "clone-constant-args"
 namespace llvm {
   STATISTIC(FunctionsCount,  "Number of functions");
   STATISTIC(FunctionsCloned, "Number of cloned functions");
