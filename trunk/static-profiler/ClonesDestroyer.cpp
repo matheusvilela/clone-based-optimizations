@@ -161,14 +161,14 @@ bool ClonesDestroyer::removeWorthlessClones() {
 
         if (clonedFn->use_empty()) {
           clonedFn->dropAllReferences();
-          clonedFn->removeFromParent();
+          clonedFn->eraseFromParent();
         }
       }
     }
     // Drop orphan functions
     if(originalFn->use_empty()) {
       originalFn->dropAllReferences();
-      originalFn->removeFromParent();
+      originalFn->eraseFromParent();
       OrphansDropped++;
     }
   }

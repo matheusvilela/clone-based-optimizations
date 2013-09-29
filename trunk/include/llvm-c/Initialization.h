@@ -49,6 +49,7 @@ void LLVMInitializePA(LLVMPassRegistryRef&);
 void LLVMInitializeCCA(LLVMPassRegistryRef&);
 void LLVMInitializeNoAlias(LLVMPassRegistryRef&);
 void LLVMInitializeDSE(LLVMPassRegistryRef&);
+void LLVMInitializeFunctionFusion(LLVMPassRegistryRef&);
 void LLVMInitializeStaticProfiler(LLVMPassRegistryRef&);
 void LLVMInitializeUtils(LLVMPassRegistryRef&);
 /**

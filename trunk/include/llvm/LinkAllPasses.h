@@ -174,6 +174,7 @@ namespace {
       (void) llvm::createCloneConstantArgsPass();
       (void) llvm::createNoAliasPass();
       (void) llvm::createDeadStoreEliminationPassPass();
+      (void) llvm::createFunctionFusionPass();
       (void) llvm::createBlockEdgeFrequencyPassPass();
       (void) llvm::createBranchPredictionPassPass();
       (void) llvm::createStaticFunctionCostPassPass();
