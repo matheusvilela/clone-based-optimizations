@@ -5,7 +5,7 @@
 using namespace llvm;
 
 void AddNoalias::getAnalysisUsage(AnalysisUsage &AU) const {
-  AU.addRequired<AliasAnalysis>();
+  AU.addRequired<PADriver>();
   AU.setPreservesAll();
 }
 
@@ -19,7 +19,7 @@ AddNoalias::AddNoalias() : ModulePass(ID) {
 
 bool AddNoalias::runOnModule(Module &M) {
 
-  AA = &getAnalysis<AliasAnalysis>();
+  PAD = &getAnalysis<PADriver>();
   // Collect information
   for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
     if (!F->isDeclaration()) {
@@ -143,13 +143,6 @@ void AddNoalias::substCallingInstructions(Function* NF, std::vector<User*> calle
   }
 }
 
-static uint64_t getPointerSize(const Value *V, AliasAnalysis &AA) {
-  uint64_t Size;
-  if (getObjectSize(V, Size, AA.getDataLayout(), AA.getTargetLibraryInfo()))
-    return Size;
-  return AliasAnalysis::UnknownSize;
-}
-
 // collect function to clone
 void AddNoalias::collectFn2Clone() {
 
@@ -158,25 +151,33 @@ void AddNoalias::collectFn2Clone() {
     User* caller                                     = fit->first;
     std::vector< std::pair<Argument*, Value*> > args = fit->second;
 
-    AliasSetTracker* AST = new AliasSetTracker(*AA);
-    bool noIntersection = true;
+    // map every actual argument of a User with its possible values
+    std::map<Value*, std::set<int> > argsValues;
     for (std::vector< std::pair<Argument*, Value*> >::iterator it = args.begin(); it != args.end(); ++it) {
-      Value* actualArg = it->second;
-      uint64_t size = getPointerSize(actualArg, *AA);
-      if (size == AliasAnalysis::UnknownSize) {
-        size = AA->getTypeStoreSize(actualArg->getType());
-      }
-      if (size == AliasAnalysis::UnknownSize)  {
-        //UnknownSize
-        noIntersection = false;
-        break;
-      } else {
-        noIntersection = noIntersection & AST->add(actualArg, size, NULL);
-      }
+      int argumentID         = PAD->Value2Int(it->second);
+      argsValues[it->second] = PAD->pointerAnalysis->pointsTo(argumentID);
     }
-    delete AST;
 
-    if (noIntersection && args.size() > 1) {
+    // verify, for every actual argument, if its possible values collide with others arguments values
+    int intersectionCount = 0;
+    for (std::vector< std::pair<Argument*, Value*> >::iterator it = args.begin(); it != args.end(); ++it) {
+      std::set<int> myValues = argsValues[it->second];
+
+      for (std::vector< std::pair<Argument*, Value*> >::iterator it2 = args.begin(); it2 != args.end(); ++it2) {
+        if (*it2 == *it) continue;
+        if (intersectionCount != 0) break;
+
+        std::set<int> otherValues = argsValues[it2->second];
+        std::vector<int> intersection(myValues.size() + otherValues.size());
+        std::vector<int>::iterator intersectionIt = std::set_intersection(myValues.begin(), myValues.end(), otherValues.begin(), otherValues.end(), intersection.begin());
+        intersection.resize(intersectionIt - intersection.begin());
+        intersectionCount += intersection.size();
+
+      }
+      if (intersectionCount != 0) break;
+    }
+
+    if (intersectionCount == 0 && args.size() > 1) {
       if (isa<CallInst>(caller)) {
         CallInst *callInst = dyn_cast<CallInst>(caller);
         Function* f        = callInst->getCalledFunction();
