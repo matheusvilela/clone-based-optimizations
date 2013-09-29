@@ -21,6 +21,7 @@ ModulePass *createPADriverPass();
 ModulePass *createCloneConstantArgsPass();
 ModulePass *createNoAliasPass();
 ModulePass *createDeadStoreEliminationPassPass();
+ModulePass *createFunctionFusionPass();
 ModulePass *createClonesDestroyerPass();
 ModulePass *createRecursionIdentifierPass();
 ModulePass *createClonesStatisticsPass();

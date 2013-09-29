@@ -80,6 +80,9 @@ void initializeNoAlias(PassRegistry&);
 /// initializeDSE - Initialize the DSE library.
 void initializeDSE(PassRegistry&);
 
+/// initializeFunctionFusion - Initialize the FunctionFusion library.
+void initializeFunctionFusion(PassRegistry&);
+
 /// initializeStaticProfiler - Initialize the StaticProfiler library.
 void initializeStaticProfiler(PassRegistry&);
 
@@ -309,6 +312,7 @@ void initializePADriverPass(PassRegistry&);
 void initializeCloneConstantArgsPass(PassRegistry&);
 void initializeAddNoaliasPass(PassRegistry&);
 void initializeDeadStoreEliminationPassPass(PassRegistry&);
+void initializeFunctionFusionPass(PassRegistry&);
 void initializeBlockEdgeFrequencyPassPass(PassRegistry&);
 void initializeBranchPredictionPassPass(PassRegistry&);
 void initializeStaticFunctionCostPassPass(PassRegistry&);

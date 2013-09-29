@@ -585,6 +585,7 @@ int main(int argc, char **argv) {
   initializeDSE(Registry);
   initializeStaticProfiler(Registry);
   initializeUtils(Registry);
+  initializeFunctionFusion(Registry);
   initializePoolAlloc(Registry);
 
   cl::ParseCommandLineOptions(argc, argv,

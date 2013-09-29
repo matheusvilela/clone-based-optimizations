@@ -415,6 +415,7 @@ add_subdirectory(clone-constant-args)
 add_subdirectory(remove-dead-stores)
 add_subdirectory(static-profiler)
 add_subdirectory(utils)
+add_subdirectory(function-fusion)
 
 add_subdirectory(llvm/utils/FileCheck ${CMAKE_CURRENT_BINARY_DIR}/utils/FileCheck)
 add_subdirectory(llvm/utils/FileUpdate ${CMAKE_CURRENT_BINARY_DIR}/utils/FileUpdate)
