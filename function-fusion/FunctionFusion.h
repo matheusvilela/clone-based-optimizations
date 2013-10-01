@@ -31,7 +31,6 @@ namespace llvm {
     std::set < CallSite* > toBeModified;
     std::map < std::pair < std::pair < Function*, Function* >, unsigned >, std::vector< std::pair<CallInst* ,CallInst*> > > functions2fuse;
     std::map < std::pair < std::pair < Function*, Function* >, unsigned >, int > functions2fuseHistogram;
-    std::map < Function*, Function* > alwaysInlineFns;
     std::map < std::pair < std::pair < Function*, Function* >, unsigned >, Function*> clonedFunctions;
 
     bool isExternalFunctionCall(CallSite& CS);
