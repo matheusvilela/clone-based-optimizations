@@ -31,9 +31,7 @@ void FunctionFusion::visitCallSite(CallSite CS) {
       CallSite iCS(cast<Instruction>(u));
       DEBUG(errs() << "use is " << *iCS.getInstruction() << "\n");
       if(isExternalFunctionCall(CS) || isExternalFunctionCall(iCS)
-          || toBeModified.count(&CS) || toBeModified.count(&iCS)
-          || CS.getCalledFunction()->getName().endswith(".alwaysinline")
-          || iCS.getCalledFunction()->getName().endswith(".alwaysinline")) {
+          || toBeModified.count(&CS) || toBeModified.count(&iCS)) {
         return;
       } else {
         toBeModified.insert(&CS);
