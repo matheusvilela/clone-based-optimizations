@@ -23,27 +23,22 @@
 #define DEBUG_TYPE "function-fusion"
 namespace llvm {
   STATISTIC(FunctionsCount,  "Number of functions");
-  STATISTIC(FunctionsCloned, "Number of cloned functions");
-  STATISTIC(ClonesCount,     "Number of functions that are clones");
   STATISTIC(CallsCount,      "Number of calls");
-  STATISTIC(PromissorCalls,  "Number of promissor calls");
+  STATISTIC(FunctionsCloned, "Number of cloned functions");
   STATISTIC(CallsReplaced,   "Number of replaced calls");
-  STATISTIC(FunctionsFused,   "Number of functions fused");
   class FunctionFusion : public ModulePass, public InstVisitor<FunctionFusion> {
 
     std::set < CallSite* > toBeModified;
-    std::map < std::pair < std::pair < Function*, Function* >, unsigned >, std::vector< std::pair<Instruction* ,Instruction*> > > functions2fuse;
+    std::map < std::pair < std::pair < Function*, Function* >, unsigned >, std::vector< std::pair<CallInst* ,CallInst*> > > functions2fuse;
     std::map < std::pair < std::pair < Function*, Function* >, unsigned >, int > functions2fuseHistogram;
     std::map < Function*, Function* > alwaysInlineFns;
     std::map < std::pair < std::pair < Function*, Function* >, unsigned >, Function*> clonedFunctions;
 
-    Function* getAlwaysInlineFunction(Function *F);
-    Function* cloneFunctionWithAlwaysInlineAttr(Function* Fn);
     bool isExternalFunctionCall(CallSite& CS);
     void selectToClone(CallSite& use, CallSite& definition);
     bool cloneFunctions();
     Function* fuseFunctions(Function* use, Function* definition, unsigned argPosition);
-    void ReplaceCallSitesWithFusion(Function* fn, Instruction* use, Instruction* definition, unsigned argPosition);
+    void ReplaceCallInstsWithFusion(Function* fn, CallInst* use, CallInst* definition, unsigned argPosition);
    public:
 
     static char ID;

@@ -5,12 +5,10 @@
 using namespace llvm;
 
 FunctionFusion::FunctionFusion() : ModulePass(ID) {
-  FunctionsCloned   = 0;
-  CallsReplaced     = 0;
   FunctionsCount    = 0;
   CallsCount        = 0;
-  ClonesCount       = 0;
-  FunctionsFused     = 0;
+  FunctionsCloned   = 0;
+  CallsReplaced     = 0;
 }
 
 bool FunctionFusion::isExternalFunctionCall(CallSite& CS) {
@@ -22,16 +20,20 @@ bool FunctionFusion::isExternalFunctionCall(CallSite& CS) {
 void FunctionFusion::visitCallSite(CallSite CS) {
   // Pega definição do tipo %v = call i32 @foo()
   Instruction *Call = CS.getInstruction();
-  if (Call->hasNUses(1)) {
+  if (isa<CallInst>(Call) && Call->hasNUses(1)) {
 
+    DEBUG(errs() << "found definition with one use : " << *CS.getInstruction() << "\n");
     // Pega único uso da definição, do tipo
     // %u = call i32 @bar(..., %v, ...)
     User *u = *(Call->use_begin());
-    if (isa<CallInst>(u) || isa<InvokeInst>(u)) {
+    if (isa<CallInst>(u)) {
 
       CallSite iCS(cast<Instruction>(u));
+      DEBUG(errs() << "use is " << *iCS.getInstruction() << "\n");
       if(isExternalFunctionCall(CS) || isExternalFunctionCall(iCS)
-          || toBeModified.count(&CS) || toBeModified.count(&iCS)) {
+          || toBeModified.count(&CS) || toBeModified.count(&iCS)
+          || CS.getCalledFunction()->getName().endswith(".alwaysinline")
+          || iCS.getCalledFunction()->getName().endswith(".alwaysinline")) {
         return;
       } else {
         toBeModified.insert(&CS);
@@ -44,7 +46,7 @@ void FunctionFusion::visitCallSite(CallSite CS) {
 
 void FunctionFusion::selectToClone(CallSite& use, CallSite& definition) {
 
-  Instruction *definitionCall = definition.getInstruction();
+  CallInst *definitionCall = dyn_cast<CallInst>(definition.getInstruction());
 
   unsigned n = 0;
   // Itera nos argumentos do uso para encontrar o
@@ -57,30 +59,53 @@ void FunctionFusion::selectToClone(CallSite& use, CallSite& definition) {
       //Achou a definição na lista de argumentos
       Function *F = use.getCalledFunction();
       Function *G = definition.getCalledFunction();
-      errs() << "Inserting " << *use.getInstruction() << "\n";
-      errs() << "Inserting " << *definition.getInstruction() << "\n";
-      functions2fuse[std::make_pair(std::make_pair(F, G), n)].push_back(std::make_pair(use.getInstruction(), definition.getInstruction()));
+      CallInst *useCall = dyn_cast<CallInst>(use.getInstruction());
+      functions2fuse[std::make_pair(std::make_pair(F, G), n)].push_back(std::make_pair(useCall, definitionCall));
       functions2fuseHistogram[std::make_pair(std::make_pair(F, G), n)]++;
 
-      FunctionsFused++;
-      errs() << "Tripla (fn, fn, n) = " << F->getName() << ", " << G->getName() << ", " << n << "\n";
+      DEBUG(errs() << "Tripla (fn, fn, n) = " << F->getName() << ", " << G->getName() << ", " << n << "\n");
     }
   }
 }
 
 
 bool FunctionFusion::runOnModule(Module &M) {
+  for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
+    if (!F->isDeclaration()) {
+      FunctionsCount++;
+       if (F->use_empty()) continue;
+       for (Value::use_iterator UI = F->use_begin(), E = F->use_end(); UI != E; ++UI) {
+         User *U = *UI;
 
-  visit(M);
-  bool modified = cloneFunctions();
+         if (isa<BlockAddress>(U)) continue;
+         if (!isa<CallInst>(U) && !isa<InvokeInst>(U)) continue;
 
-  return modified;
+         CallSite CS(cast<Instruction>(U));
+         if (!CS.isCallee(UI)) continue;
+         CallsCount++;
+       }
+    }
+  }
+
+  bool modifiedModule = false;
+  bool modified       = false;
+  do {
+    toBeModified.clear();
+    functions2fuse.clear();
+    visit(M);
+    modified  = cloneFunctions();
+    modifiedModule = modifiedModule | modified;
+
+    DEBUG(errs() << "one round! " << modified << "\n");
+  } while (modified);
+
+  return modifiedModule;
 }
 
 // clone functions and replace its callers
 bool FunctionFusion::cloneFunctions() {
   bool modified = false;
-  for (std::map < std::pair < std::pair < Function*, Function* >, unsigned >, std::vector< std::pair<Instruction*, Instruction*> > >::iterator it = functions2fuse.begin();
+  for (std::map < std::pair < std::pair < Function*, Function* >, unsigned >, std::vector< std::pair<CallInst*, CallInst*> > >::iterator it = functions2fuse.begin();
       it != functions2fuse.end(); ++it) {
     std::pair < std::pair < Function*, Function* >, unsigned > triple = it->first;
 
@@ -99,64 +124,19 @@ bool FunctionFusion::cloneFunctions() {
     }
 
     //Replace uses
-    std::vector< std::pair<Instruction* ,Instruction*> > callSites = it->second;
-    for(std::vector< std::pair<Instruction* ,Instruction*> >::iterator CSit = callSites.begin();
-        CSit != callSites.end(); ++CSit) {
-      std::pair<Instruction* ,Instruction*> cspair = *CSit;
-      Instruction* use        = cspair.first;
-      Instruction* definition = cspair.second;
+    std::vector< std::pair<CallInst* ,CallInst*> > callInsts = it->second;
+    for(std::vector< std::pair<CallInst* ,CallInst*> >::iterator CSit = callInsts.begin();
+        CSit != callInsts.end(); ++CSit) {
+      std::pair<CallInst* ,CallInst*> cspair = *CSit;
+      CallInst* use        = cspair.first;
+      CallInst* definition = cspair.second;
       unsigned argPosition = triple.second; 
-      ReplaceCallSitesWithFusion(clone, use, definition, argPosition);
+      ReplaceCallInstsWithFusion(clone, use, definition, argPosition);
     }
 
   }
     
   return modified;
-}
-
-Function* FunctionFusion::getAlwaysInlineFunction(Function *F) {
-  Function *NF;
-  if (!alwaysInlineFns.count(F)) {
-    NF = cloneFunctionWithAlwaysInlineAttr(F);
-    alwaysInlineFns[F] = NF;
-  } else {
-    NF = alwaysInlineFns[F];
-  }
-  return NF;
-}
-
-Function* FunctionFusion::cloneFunctionWithAlwaysInlineAttr(Function* Fn) {
-  Function *NF = Function::Create(Fn->getFunctionType(), GlobalValue::InternalLinkage);
-  NF->copyAttributesFrom(Fn);
-
-  // Add alwaysinline attribute
-  NF->addFnAttr(Attribute::AlwaysInline);
-
-  // Copy parameter names
-  Function::arg_iterator NFArg = NF->arg_begin();
-  for (Function::arg_iterator Arg = Fn->arg_begin(), ArgEnd = Fn->arg_end(); Arg != ArgEnd; ++Arg, ++NFArg) {
-    NFArg->setName(Arg->getName());
-  }
-
-  // To avoid name collision, we should select another name.
-  NF->setName(Fn->getName() + ".alwaysinline");
-
-  // Insert the clone function before the original
-  Fn->getParent()->getFunctionList().insert(Fn, NF);
-
-  // Fill clone content
-  ValueToValueMapTy VMap;
-  SmallVector<ReturnInst*, 8> Returns;
-
-  Function::arg_iterator NI = NF->arg_begin();
-  for (Function::arg_iterator I = Fn->arg_begin();
-      NI != NF->arg_end(); ++I, ++NI) {
-    VMap[I] = NI;
-  }
-
-  CloneAndPruneFunctionInto(NF, Fn, VMap, false, Returns);
-
-  return NF;
 }
 
 Function* FunctionFusion::fuseFunctions(Function* use, Function* definition, unsigned argPosition) {
@@ -211,8 +191,7 @@ Function* FunctionFusion::fuseFunctions(Function* use, Function* definition, uns
     defParams.push_back(arg);
   }
 
-  CallInst* newDefCI = CallInst::Create(getAlwaysInlineFunction(definition), defParams, "", BB);
-  errs() << "inserting use callinst " << *newDefCI << "\n";
+  CallInst* newDefCI = CallInst::Create(definition, defParams, "", BB);
   std::vector<Value*> useParams;
   for (unsigned i = 0; i < useFT->getNumParams(); ++i) {
     if (i == argPosition) {
@@ -223,46 +202,32 @@ Function* FunctionFusion::fuseFunctions(Function* use, Function* definition, uns
       ++NFArgIter;
     }
   }
-  CallInst* newUseCI = CallInst::Create(getAlwaysInlineFunction(use), useParams, "", BB);
-  errs() << "inserting use callinst " << *newUseCI << "\n";
+  CallInst* newUseCI = CallInst::Create(use, useParams, "", BB);
 
+  // Create return inst
   ReturnInst::Create(NF->getContext(), newUseCI, BB);
 
+  // Inline new call insts
+  InlineFunctionInfo unused;
+  InlineFunction(newDefCI, unused);
+  InlineFunction(newUseCI, unused);
+
+  FunctionsCloned++;
   return NF;
 }
 
-void FunctionFusion::ReplaceCallSitesWithFusion(Function* fn, Instruction* use, Instruction* definition, unsigned argPosition) {
+void FunctionFusion::ReplaceCallInstsWithFusion(Function* fn, CallInst* use, CallInst* definition, unsigned argPosition) {
 
   // Collect params
   std::vector<Value*> params;
 
-  if (InvokeInst *II = dyn_cast<InvokeInst>(definition)) {
-    errs() << "will get params from " << *II << "\n";
-    for (unsigned i = 0; i < II->getNumArgOperands(); ++i) {
-      params.push_back(II->getArgOperand(i));
-    }
-  } else {
-    CallInst *CI = dyn_cast<CallInst>(definition);
-    errs() << "will get params from " << *CI << "\n";
-    for (unsigned i = 0; i < CI->getNumArgOperands(); ++i) {
-      params.push_back(CI->getArgOperand(i));
-    }
+  for (unsigned i = 0; i < definition->getNumArgOperands(); ++i) {
+    params.push_back(definition->getArgOperand(i));
   }
-  errs() << "got def params" << params.size() << "\n";
 
-  if (InvokeInst *II = dyn_cast<InvokeInst>(use)) {
-    errs() << "will get params from " << *II << "\n";
-    for (unsigned i = 0; i < II->getNumArgOperands(); ++i) {
-      if (i != argPosition) params.push_back(II->getArgOperand(i));
-    }
-  } else {
-    CallInst *CI = dyn_cast<CallInst>(use);
-    errs() << "will get params from " << *CI << "\n";
-    for (unsigned i = 0; i < CI->getNumArgOperands(); ++i) {
-      if (i != argPosition) params.push_back(CI->getArgOperand(i));
-    }
+  for (unsigned i = 0; i < use->getNumArgOperands(); ++i) {
+    if (i != argPosition) params.push_back(use->getArgOperand(i));
   }
-  errs() << "got params " << params.size();
 
   // Insert new call inst
   CallInst* newCI = CallInst::Create(fn, params, "", use);
@@ -273,12 +238,12 @@ void FunctionFusion::ReplaceCallSitesWithFusion(Function* fn, Instruction* use, 
   // Remove previous callSites
   use->eraseFromParent();
   definition->eraseFromParent();
+  CallsReplaced += 2;
 }
 
 void FunctionFusion::print(raw_ostream& O, const Module* M) const {
-  O << "# functions; # cloned functions; # clones; # calls; # promissor calls; # replaced calls\n";
-  O << FunctionsCount << ";" << FunctionsCloned << ";" << ClonesCount << ";" << CallsCount << ";" << PromissorCalls << ";" << CallsReplaced << "\n";
-  O << "Functions Fused: "<< FunctionsFused << "\n";
+  O << "# functions; # cloned functions; # calls; # replaced calls\n";
+  O << FunctionsCount << ";" << FunctionsCloned << ";" << CallsCount << ";" << CallsReplaced << "\n";
 }
 
 // Register the pass to the LLVM framework
