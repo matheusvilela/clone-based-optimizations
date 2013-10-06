@@ -28,12 +28,12 @@ namespace llvm {
   STATISTIC(CallsReplaced,   "Number of replaced calls");
   class FunctionFusion : public ModulePass, public InstVisitor<FunctionFusion> {
 
-    std::set < CallSite* > toBeModified;
+    std::set < CallInst* > toBeModified;
     std::map < std::pair < std::pair < Function*, Function* >, unsigned >, std::vector< std::pair<CallInst* ,CallInst*> > > functions2fuse;
     std::map < std::pair < std::pair < Function*, Function* >, unsigned >, int > functions2fuseHistogram;
     std::map < std::pair < std::pair < Function*, Function* >, unsigned >, Function*> clonedFunctions;
 
-    bool isExternalFunctionCall(CallSite& CS);
+    bool isExternalFunctionCall(CallInst* CS);
     void selectToClone(CallSite& use, CallSite& definition);
     bool cloneFunctions();
     Function* fuseFunctions(Function* use, Function* definition, unsigned argPosition);

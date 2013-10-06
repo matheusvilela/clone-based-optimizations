@@ -11,8 +11,8 @@ FunctionFusion::FunctionFusion() : ModulePass(ID) {
   CallsReplaced     = 0;
 }
 
-bool FunctionFusion::isExternalFunctionCall(CallSite& CS) {
-  Function *F = CS.getCalledFunction();
+bool FunctionFusion::isExternalFunctionCall(CallInst* CS) {
+  Function *F = CS->getCalledFunction();
   if (!F || F->isDeclaration()) return true;
   return false;
 }
@@ -22,20 +22,21 @@ void FunctionFusion::visitCallSite(CallSite CS) {
   Instruction *Call = CS.getInstruction();
   if (isa<CallInst>(Call) && Call->hasNUses(1)) {
 
-    DEBUG(errs() << "found definition with one use : " << *CS.getInstruction() << "\n");
     // Pega único uso da definição, do tipo
     // %u = call i32 @bar(..., %v, ...)
     User *u = *(Call->use_begin());
     if (isa<CallInst>(u)) {
 
       CallSite iCS(cast<Instruction>(u));
-      DEBUG(errs() << "use is " << *iCS.getInstruction() << "\n");
-      if(isExternalFunctionCall(CS) || isExternalFunctionCall(iCS)
-          || toBeModified.count(&CS) || toBeModified.count(&iCS)) {
+
+      CallInst *CI = dyn_cast<CallInst>(Call);
+      CallInst *iCI = dyn_cast<CallInst>(iCS.getInstruction());
+      if(isExternalFunctionCall(CI) || isExternalFunctionCall(iCI)
+          || toBeModified.count(CI) || toBeModified.count(iCI)) {
         return;
       } else {
-        toBeModified.insert(&CS);
-        toBeModified.insert(&iCS);
+        toBeModified.insert(CI);
+        toBeModified.insert(iCI);
         selectToClone(iCS, CS);
       }
     }
@@ -176,6 +177,7 @@ Function* FunctionFusion::fuseFunctions(Function* use, Function* definition, uns
   std::ostringstream convert;
   convert << argPosition;
   NF->setName(use->getName() + definition->getName() + convert.str() + ".fused");
+  DEBUG(errs() << "creating function " << NF->getName() << "\n");
 
   // Insert the fusion function before the original
   use->getParent()->getFunctionList().insert(use, NF);
@@ -200,10 +202,15 @@ Function* FunctionFusion::fuseFunctions(Function* use, Function* definition, uns
       ++NFArgIter;
     }
   }
+
   CallInst* newUseCI = CallInst::Create(use, useParams, "", BB);
 
   // Create return inst
-  ReturnInst::Create(NF->getContext(), newUseCI, BB);
+  if (use->getReturnType()->isVoidTy()) {
+    ReturnInst::Create(NF->getContext(), 0, BB);
+  } else {
+    ReturnInst::Create(NF->getContext(), newUseCI, BB);
+  }
 
   // Inline new call insts
   InlineFunctionInfo unused;
