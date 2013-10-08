@@ -32,8 +32,10 @@ STATISTIC(HighestProfitStat, "Highest profit cloning a function");
 STATISTIC(RecursiveClones, "Number of clones that are recursive functions");
 STATISTIC(CloningSize,     "Size of cloning");
 STATISTIC(InliningSize,    "Size of inlining");
+STATISTIC(OrphansDropped, "Number of ophan functions removed");
 class ClonesStatistics : public ModulePass {
 
+  std::map<std::string, Function*> name2fn;
   std::map<std::string, std::vector<Function*> > functions;
   StaticFunctionCostPass *SFCP;
   RecursionIdentifier *RI;
@@ -55,6 +57,7 @@ class ClonesStatistics : public ModulePass {
     InliningSize    = 0;
     AvgProfit       = 0;
     HighestProfitStat = 0;
+    OrphansDropped  = 0;
   }
 
   // +++++ METHODS +++++ //
@@ -65,6 +68,8 @@ class ClonesStatistics : public ModulePass {
   void collectFunctions(Function &F);
   void getStatistics();
   unsigned int getFunctionSize(Function &F);
+  void getFusedStatistics();
+  bool removeFunctionFusionGarbage(Module &M);
 };
 
 // ============================= //
@@ -95,8 +100,11 @@ bool ClonesStatistics::runOnModule(Module &M) {
     }
   }
   getStatistics();
+  getFusedStatistics();
+  //removeFunctionFusionGarbage(M);
 
-  AvgProfit = (unsigned)TotalProfits/NumFunctions;
+  if (NumFunctions != 0) AvgProfit = (unsigned)TotalProfits/NumFunctions;
+  else AvgProfit = 0;
   HighestProfitStat = (unsigned) HighestProfit;
   DEBUG(print(errs(), &M));
   return false;
@@ -105,13 +113,33 @@ bool ClonesStatistics::runOnModule(Module &M) {
 // ============================= //
 
 void ClonesStatistics::print(raw_ostream& O, const Module* M) const {
+  O << "Number of orphans dropped: " << OrphansDropped << '\n';
   O << "Average profit: " << AvgProfit << '\n';
   O << "Highest profit: " << (unsigned)HighestProfit << '\n';
   O << "Obtained on function " << highestProfitFn << '\n';
 }
 
+bool ClonesStatistics::removeFunctionFusionGarbage(Module &M) {
+  bool modified = false;
+  std::vector<Function*> toBeRemoved;
+  for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
+    if (F && !F->isDeclaration() && F->getLinkage() == GlobalValue::InternalLinkage) {
+       if (F->use_empty()) toBeRemoved.push_back(F);
+    }
+  }
+  for (std::vector<Function*>::iterator it = toBeRemoved.begin(); it != toBeRemoved.end(); ++it) {
+    Function *F = *it;
+    F->eraseFromParent();
+    modified = true;
+  }
+  return modified;
+}
+
+
 void ClonesStatistics::collectFunctions(Function &F) {
   std::string fnName = F.getName();
+
+  name2fn[fnName] = &F;
 
   Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.noret))+");
   bool isCloned = ending.match(fnName);
@@ -133,6 +161,93 @@ void ClonesStatistics::collectFunctions(Function &F) {
     }
   }
   functions[originalName].push_back(&F);
+
+
+}
+
+void ClonesStatistics::getFusedStatistics() {
+  std::set<Function*> allFunctions;
+  std::map<Function*, std::vector<Function*> > fusedFns;
+  for(std::map<std::string, Function*>::iterator it = name2fn.begin();
+        it != name2fn.end(); ++it) {
+     std::string fnName = it->first;
+     Function *F = it->second;
+     Regex fusedEnding("\\.fused_[0-9]+$");
+     if(fusedEnding.match(fnName)) {
+        allFunctions.insert(F);
+        SmallVector<StringRef, 10> functionsNames;
+        StringRef(fnName).split(functionsNames, StringRef(".fused_"));
+        for( SmallVector<StringRef, 10>::iterator it = functionsNames.begin();
+              it != functionsNames.end(); ++it) {
+           std::string originalName = it->str();
+           Function* originalFn = name2fn.count(originalName) ? name2fn[originalName] : NULL;
+           if (originalFn) {
+              fusedFns[F].push_back(originalFn);
+              allFunctions.insert(originalFn);
+           }
+        }
+     }
+  }
+  for (std::map<Function*, std::vector<Function*> >::iterator it = fusedFns.begin();
+        it != fusedFns.end(); ++it) {
+     Function *clonedFn = it->first;
+     std::vector<Function*> originalFns = it->second;
+     double originalCost = 0.0, clonedCost;
+     unsigned int originalSize = 0;
+
+     // Verify if the clone is recursive
+     if (RI->isRecursive(clonedFn)) {
+       RecursiveClones++;
+     }
+     // Estimate cloned function cost with the static profiler
+     SFCP = &getAnalysis<StaticFunctionCostPass>(*clonedFn);
+     clonedCost = SFCP->getFunctionCost();
+
+     // Estimate original functions costs with the static profiler
+     for(std::vector<Function*>::iterator it2 = originalFns.begin();
+           it2 != originalFns.end(); ++it2) {
+       Function *originalFn = *it2;
+       SFCP = &getAnalysis<StaticFunctionCostPass>(*originalFn);
+       originalCost += SFCP->getFunctionCost();
+       originalSize += getFunctionSize(*originalFn);
+     }
+
+     // Get profit
+     double profit = originalCost - clonedCost;
+     if (profit > 0.0) {
+        TotalProfits += profit;
+        NumFunctions++;
+     }
+     if (profit > HighestProfit) {
+        HighestProfit = profit;
+        highestProfitFn = clonedFn->getName();
+     }
+
+     // Get clones uses
+     std::vector<User*> uses;
+     for (Value::use_iterator UI = clonedFn->use_begin(); UI != clonedFn->use_end(); ++UI) {
+        User *U = *UI;
+        if (!isa<CallInst>(U) && !isa<InvokeInst>(U)) continue;
+        uses.push_back(U);
+     }
+     InliningSize += uses.size() * originalSize;
+  }
+
+  for (std::set<Function*>::iterator it = allFunctions.begin();
+        it != allFunctions.end(); ++it) {
+
+     Function *F = *it;
+     unsigned size = getFunctionSize(*F);
+     Regex fusedEnding("\\.fused_[0-9]+$");
+     std::string fnName = F->getName();
+     if(fusedEnding.match(fnName)) {
+        CloningSize += size;
+     } else {
+        CloningSize  += size;
+        InliningSize += size;
+        if(F->use_empty()) OrphansDropped++;
+     }
+  }
 }
 
 void ClonesStatistics::getStatistics() {
@@ -219,6 +334,12 @@ void ClonesStatistics::getStatistics() {
     // Estimate cloning and inlining size
     CloningSize  += clonesSize + originalSize;
     InliningSize += originalSize * uses.size();
+    // Drop orphan functions
+    if(originalFn->use_empty()) {
+      //originalFn->dropAllReferences();
+      //originalFn->eraseFromParent();
+      OrphansDropped++;
+    }
   }
 }
 
