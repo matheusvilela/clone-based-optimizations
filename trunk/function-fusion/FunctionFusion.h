@@ -15,6 +15,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/CallSite.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/Regex.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/Utils/Cloning.h"
