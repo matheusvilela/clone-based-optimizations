@@ -26,7 +26,6 @@
 using namespace llvm;
 
 STATISTIC(ClonesRemoved,  "Number of cloned functions removed");
-STATISTIC(OrphansDropped, "Number of ophan functions removed");
 STATISTIC(CallsRestored,  "Number of calls restored");
 class ClonesDestroyer : public ModulePass {
 
@@ -39,7 +38,6 @@ class ClonesDestroyer : public ModulePass {
   ClonesDestroyer() : ModulePass(ID) {
     ClonesRemoved   = 0;
     CallsRestored   = 0;
-    OrphansDropped  = 0;
   }
 
   // +++++ METHODS +++++ //
@@ -50,7 +48,6 @@ class ClonesDestroyer : public ModulePass {
   void collectFunctions(Function &F);
   bool removeWorthlessClones();
   bool substituteCallSites(Function *Fn, Function *Clone, bool isNoRetOpt);
-  bool removeFunctionFusionGarbage(Module &M);
 };
 
 // ============================= //
@@ -69,36 +66,17 @@ bool ClonesDestroyer::runOnModule(Module &M) {
     }
   }
   bool modified = removeWorthlessClones();
-  modified = modified | removeFunctionFusionGarbage(M);
 
   DEBUG(errs() << "Number of clones removed: " << ClonesRemoved << '\n');
   DEBUG(errs() << "Number of calls restored: " << CallsRestored << '\n');
-  DEBUG(errs() << "Number of orphans dropped: " << OrphansDropped << '\n');
   return modified;
 }
 
 // ============================= //
 
-bool ClonesDestroyer::removeFunctionFusionGarbage(Module &M) {
-  bool modified = false;
-  std::vector<Function*> toBeRemoved;
-  for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
-    if (F && !F->isDeclaration() && F->getLinkage() == GlobalValue::InternalLinkage) {
-       if (F->use_empty()) toBeRemoved.push_back(F);
-    }
-  }
-  for (std::vector<Function*>::iterator it = toBeRemoved.begin(); it != toBeRemoved.end(); ++it) {
-    Function *F = *it;
-    F->eraseFromParent();
-    modified = true;
-  }
-  return modified;
-}
-
 void ClonesDestroyer::print(raw_ostream& O, const Module* M) const {
   O << "Number of clones removed: " << ClonesRemoved << '\n';
   O << "Number of calls restored: " << CallsRestored << '\n';
-  O << "Number of orphans dropped: " << OrphansDropped << '\n';
 }
 
 void ClonesDestroyer::collectFunctions(Function &F) {
@@ -182,12 +160,6 @@ bool ClonesDestroyer::removeWorthlessClones() {
           clonedFn->eraseFromParent();
         }
       }
-    }
-    // Drop orphan functions
-    if(originalFn->use_empty()) {
-      originalFn->dropAllReferences();
-      originalFn->eraseFromParent();
-      OrphansDropped++;
     }
   }
 
