@@ -34,6 +34,8 @@ namespace llvm {
     std::map < std::pair < std::pair < Function*, Function* >, unsigned >, Function*> clonedFunctions;
 
     bool isExternalFunctionCall(CallInst* CS);
+    bool hasPointerParam(Function* F);
+    bool areNeighborInsts(Instruction* first, Instruction* second);
     void selectToClone(CallSite& use, CallSite& definition);
     bool cloneFunctions();
     Function* fuseFunctions(Function* use, Function* definition, unsigned argPosition);

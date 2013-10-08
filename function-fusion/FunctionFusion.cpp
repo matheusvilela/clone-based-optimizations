@@ -17,6 +17,29 @@ bool FunctionFusion::isExternalFunctionCall(CallInst* CS) {
   return false;
 }
 
+bool FunctionFusion::areNeighborInsts(Instruction* first, Instruction* second) {
+   BasicBlock* BB = first->getParent();
+   for (BasicBlock::iterator I = BB->begin(); I != BB->end();) {
+     Instruction *inst = I;
+     if (inst == first) {
+      Instruction *nextInst = ++I;
+      if (nextInst == second) return true;
+      else return false;
+     } else {
+       ++I;
+     }
+   }
+   return false;
+}
+
+bool FunctionFusion::hasPointerParam(Function* F) {
+  FunctionType* FT = F->getFunctionType();
+  for (unsigned i = 0; i < FT->getNumParams(); ++i) {
+    if (FT->getParamType(i)->isPointerTy()) return true;
+  }
+  return false;
+}
+
 void FunctionFusion::visitCallSite(CallSite CS) {
   // Pega definição do tipo %v = call i32 @foo()
   Instruction *Call = CS.getInstruction();
@@ -32,7 +55,15 @@ void FunctionFusion::visitCallSite(CallSite CS) {
       CallInst *CI = dyn_cast<CallInst>(Call);
       CallInst *iCI = dyn_cast<CallInst>(iCS.getInstruction());
       if(isExternalFunctionCall(CI) || isExternalFunctionCall(iCI)
-          || toBeModified.count(CI) || toBeModified.count(iCI)) {
+          || toBeModified.count(CI) || toBeModified.count(iCI)
+          //|| hasPointerParam(CS.getCalledFunction())
+          || CS.getCalledFunction()->isVarArg()
+          || iCS.getCalledFunction()->isVarArg()
+          || !areNeighborInsts(CI, iCI)
+          //|| CS.getCalledFunction()->getReturnType()->isPointerTy()
+          //|| hasPointerParam(iCS.getCalledFunction())
+          //|| iCS.getCalledFunction()->getReturnType()->isPointerTy()
+         ) {
         return;
       } else {
         toBeModified.insert(CI);
@@ -155,7 +186,9 @@ Function* FunctionFusion::fuseFunctions(Function* use, Function* definition, uns
 
   // Create the new fused function
   FunctionType *newFT = FunctionType::get(use->getReturnType(), params, use->isVarArg());
-  Function *NF = Function::Create(newFT, GlobalValue::InternalLinkage);
+  Function *NF = Function::Create(newFT, use->getLinkage());
+  NF->setCallingConv(use->getCallingConv());
+  // NF->copyAttributesFrom(use);
 
   // After the parameters have been copied, we should copy the parameter
   // names, to ease function inspection afterwards.
@@ -236,11 +269,13 @@ void FunctionFusion::ReplaceCallInstsWithFusion(Function* fn, CallInst* use, Cal
 
   // Insert new call inst
   CallInst* newCI = CallInst::Create(fn, params, "", use);
+  newCI->setCallingConv(use->getCallingConv());
+  // newCI->setAttributes(use->getAttributes());
 
   // Replace uses of 'use' values
   use->replaceAllUsesWith(newCI);
 
-  // Remove previous callSites
+  // Remove previous callInsts
   use->eraseFromParent();
   definition->eraseFromParent();
   CallsReplaced += 2;

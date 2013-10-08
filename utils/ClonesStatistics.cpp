@@ -27,7 +27,8 @@
 
 using namespace llvm;
 
-STATISTIC(HighestProfit,   "Highest profit cloning a function");
+STATISTIC(AvgProfit,       "Average profit cloning a function");
+STATISTIC(HighestProfitStat, "Highest profit cloning a function");
 STATISTIC(RecursiveClones, "Number of clones that are recursive functions");
 STATISTIC(CloningSize,     "Size of cloning");
 STATISTIC(InliningSize,    "Size of inlining");
@@ -38,15 +39,22 @@ class ClonesStatistics : public ModulePass {
   RecursionIdentifier *RI;
   std::string highestProfitFn;
 
+  double TotalProfits;
+  unsigned int NumFunctions;
+  double HighestProfit;
   public:
 
   static char ID;
 
   ClonesStatistics() : ModulePass(ID) {
-    HighestProfit   = 0;
+    HighestProfit   = 0.0;
+    TotalProfits    = 0.0;
+    NumFunctions    = 0;
     RecursiveClones = 0;
     CloningSize     = 0;
     InliningSize    = 0;
+    AvgProfit       = 0;
+    HighestProfitStat = 0;
   }
 
   // +++++ METHODS +++++ //
@@ -56,13 +64,13 @@ class ClonesStatistics : public ModulePass {
   virtual void print(raw_ostream& O, const Module* M) const;
   void collectFunctions(Function &F);
   void getStatistics();
-  int getFunctionSize(Function &F);
+  unsigned int getFunctionSize(Function &F);
 };
 
 // ============================= //
 
-int ClonesStatistics::getFunctionSize(Function &F) {
-  int functionSize = 0;
+unsigned int ClonesStatistics::getFunctionSize(Function &F) {
+  unsigned int functionSize = 0;
   for(Function::iterator it = F.begin(); it != F.end(); it++) {
      functionSize += it->size();
   }
@@ -88,6 +96,8 @@ bool ClonesStatistics::runOnModule(Module &M) {
   }
   getStatistics();
 
+  AvgProfit = (unsigned)TotalProfits/NumFunctions;
+  HighestProfitStat = (unsigned) HighestProfit;
   DEBUG(print(errs(), &M));
   return false;
 }
@@ -95,7 +105,8 @@ bool ClonesStatistics::runOnModule(Module &M) {
 // ============================= //
 
 void ClonesStatistics::print(raw_ostream& O, const Module* M) const {
-  O << "Highest profit: " << HighestProfit << '\n';
+  O << "Average profit: " << AvgProfit << '\n';
+  O << "Highest profit: " << (unsigned)HighestProfit << '\n';
   O << "Obtained on function " << highestProfitFn << '\n';
 }
 
@@ -160,7 +171,7 @@ void ClonesStatistics::getStatistics() {
     SFCP = &getAnalysis<StaticFunctionCostPass>(*originalFn);
     originalCost = SFCP->getFunctionCost();
 
-    int originalSize = getFunctionSize(*originalFn);
+    unsigned int originalSize = getFunctionSize(*originalFn);
 
     // Get original function uses
     std::vector<User*> uses;
@@ -170,7 +181,7 @@ void ClonesStatistics::getStatistics() {
        uses.push_back(U);
     }
 
-    int clonesSize = 0;
+    unsigned int clonesSize = 0;
     for (std::vector<Function*>::iterator it2 = clonedFns.begin(); it2 != clonedFns.end(); ++it2) {
       Function* clonedFn = *it2;
 
@@ -194,7 +205,11 @@ void ClonesStatistics::getStatistics() {
       clonedCost = SFCP->getFunctionCost();
 
       // Get profit
-      unsigned int profit = originalCost - clonedCost;
+      double profit = originalCost - clonedCost;
+      if (profit > 0.0) {
+         TotalProfits += profit;
+         NumFunctions++;
+      }
       if (profit > HighestProfit) {
          HighestProfit = profit;
          highestProfitFn = originalFn->getName();
