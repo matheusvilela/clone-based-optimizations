@@ -209,7 +209,25 @@ Function* FunctionFusion::fuseFunctions(Function* use, Function* definition, uns
   // Set function fused name
   std::ostringstream convert;
   convert << argPosition;
-  NF->setName(use->getName() + definition->getName() + convert.str() + ".fused");
+
+  std::string fnName = definition->getName();
+  Regex fusedEnding("\\.fused_[0-9]+$");
+  std::string number;
+  if(fusedEnding.match(fnName)) {
+    SmallVector<StringRef, 1> matches;
+    Regex fusedNumber("[0-9]+$");
+    if(fusedNumber.match(fnName, &matches)) {
+      number = matches.begin()->str();
+    } else {
+      number = "";
+    }
+    fnName = fusedEnding.sub("", fnName);
+  } else {
+    number = "";
+  }
+
+  std::string newName = fnName + ".fused_" + use->getName().str() + ".fused_" + number + convert.str();
+  NF->setName(newName);
   DEBUG(errs() << "creating function " << NF->getName() << "\n");
 
   // Insert the fusion function before the original
