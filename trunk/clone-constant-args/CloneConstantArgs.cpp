@@ -5,11 +5,12 @@
 using namespace llvm;
 
 CloneConstantArgs::CloneConstantArgs() : ModulePass(ID) {
-  FunctionsCloned   = 0;
-  CallsReplaced     = 0;
   FunctionsCount    = 0;
-  CallsCount        = 0;
+  FunctionsCloned   = 0;
   ClonesCount       = 0;
+  CallsCount        = 0;
+  PromissorCalls    = 0;
+  CallsReplaced     = 0;
 }
 
 bool CloneConstantArgs::runOnModule(Module &M) {
@@ -67,12 +68,14 @@ void CloneConstantArgs::collectFn2Clone() {
         CallInst *callInst = dyn_cast<CallInst>(caller);
         Function* f        = callInst->getCalledFunction();
         if (!f->hasAvailableExternallyLinkage()) {
+          if (!fn2Clone.count(f)) PromissorCalls += f->getNumUses();
           fn2Clone[f].push_back(caller);
         }
       } else if (isa<InvokeInst>(caller)) {
         InvokeInst *invokeInst = dyn_cast<InvokeInst>(caller);
         Function* f            = invokeInst->getCalledFunction();
         if (!f->hasAvailableExternallyLinkage()) {
+          if (!fn2Clone.count(f)) PromissorCalls += f->getNumUses();
           fn2Clone[f].push_back(caller);
         }
       }
@@ -87,7 +90,8 @@ bool CloneConstantArgs::cloneFunctions() {
       it != fn2Clone.end(); ++it) {
   
     FunctionsCloned++;
-    PromissorCalls += it->first->getNumUses();
+    Function *F = it->first;
+
     std::map< std::vector< std::pair<Argument*, Value*> >, Function*> clonedFns;
     for(unsigned long i = 0; i < it->second.size(); i++) {
       User* caller = it->second.at(i);
@@ -97,7 +101,7 @@ bool CloneConstantArgs::cloneFunctions() {
         // Clone function if a proper clone doesnt already exist
         std::stringstream suffix;
         suffix << ".constargs" << i;
-        Function* NF = cloneFunctionWithConstArgs(it->first, caller, suffix.str());
+        Function* NF = cloneFunctionWithConstArgs(F, caller, suffix.str());
         replaceCallingInst(caller, NF);
         clonedFns[userArgs] = NF;
         ClonesCount++;

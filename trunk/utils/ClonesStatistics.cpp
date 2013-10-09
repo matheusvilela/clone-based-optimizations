@@ -195,10 +195,6 @@ void ClonesStatistics::getFusedStatistics() {
      double originalCost = 0.0, clonedCost;
      unsigned int originalSize = 0;
 
-     // Verify if the clone is recursive
-     if (RI->isRecursive(clonedFn)) {
-       RecursiveClones++;
-     }
      // Estimate cloned function cost with the static profiler
      SFCP = &getAnalysis<StaticFunctionCostPass>(*clonedFn);
      clonedCost = SFCP->getFunctionCost();
@@ -246,6 +242,11 @@ void ClonesStatistics::getFusedStatistics() {
         CloningSize  += size;
         InliningSize += size;
         if(F->use_empty()) OrphansDropped++;
+
+       // Verify if the original function is recursive
+       if (RI->isRecursive(F)) {
+          RecursiveClones++;
+       }
      }
   }
 }
@@ -296,14 +297,15 @@ void ClonesStatistics::getStatistics() {
        uses.push_back(U);
     }
 
+    // Verify if the original function is recursive
+    if (RI->isRecursive(originalFn)) {
+      RecursiveClones++;
+    }
+
     unsigned int clonesSize = 0;
     for (std::vector<Function*>::iterator it2 = clonedFns.begin(); it2 != clonedFns.end(); ++it2) {
       Function* clonedFn = *it2;
 
-      // Verify if the clone is recursive
-      if (RI->isRecursive(clonedFn)) {
-        RecursiveClones++;
-      }
 
       // Get clone size
       clonesSize += getFunctionSize(*clonedFn);
