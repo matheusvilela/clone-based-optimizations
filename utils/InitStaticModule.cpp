@@ -7,6 +7,7 @@ using namespace llvm;
 void llvm::initializeUtils(PassRegistry &Registry) {
   initializeRecursionIdentifierPass(Registry);
   initializeClonesStatisticsPass(Registry);
+  initializeClonesCleanerPass(Registry);
 }
 
 /// LLVMInitializeUtlis - C binding for initializeUtils

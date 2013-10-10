@@ -134,12 +134,14 @@ namespace {
           Fn2CloneMap::iterator i = clonedFunctions.find(Fn);
           if (i == clonedFunctions.end()) {
 
+            NrCloneFns++;
+            NrPotentialCallInst += Fn->getNumUses();
+
             // Clone function
             Function *Clone = cloneFunctionAsVoid(Fn);
 
             clonedFunctions.insert(std::make_pair(Fn, Clone));
             recook.push_back(Clone);
-            NrCloneFns++;
 
             DEBUG(errs() << "Cloned: " << Fn->getName()
                          << " (refs=" << r->second.size() << ")\n");
@@ -294,31 +296,15 @@ namespace {
       for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
         if (!F->isDeclaration()) {
           NrFns++;
-
-          if (F->use_empty()) continue;
-
-          for (Value::use_iterator UI = F->use_begin(), E = F->use_end(); UI != E; ++UI) {
-            User *U = *UI;
-
-            if (!isa<CallInst>(U) && !isa<InvokeInst>(U)) continue;
-
-            CallSite CS(cast<Instruction>(U));
-            if (!CS.isCallee(UI)) continue;
-            Function *calledFunction = CS.getCalledFunction();
-
-            NrCallInst++;
-            if (unusedRetvals.count(calledFunction)) {
-              NrPotentialCallInst++;
-            }
-          }
+          if (!F->use_empty()) NrCallInst += F->getNumUses();
         }
       }
     }
 
     // Prune all unused retvals available in the module
     virtual bool runOnModule(Module &M) {
-      visit(M); // Collect unused retvals
       getStats(M);
+      visit(M); // Collect unused retvals
       cloneFunctions();
       substCallingInstructions();
       return clonedFunctions.size() > 0;

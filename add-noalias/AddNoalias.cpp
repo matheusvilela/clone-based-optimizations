@@ -26,6 +26,7 @@ bool AddNoalias::runOnModule(Module &M) {
       NoAliasPotentialFunctions++;
 
       if (F->use_empty()) continue;
+      NoAliasTotalCalls += F->getNumUses();
       for (Value::use_iterator UI = F->use_begin(), E = F->use_end(); UI != E; ++UI) {
         User *U = *UI;
 
@@ -34,7 +35,6 @@ bool AddNoalias::runOnModule(Module &M) {
 
         CallSite CS(cast<Instruction>(U));
         if (!CS.isCallee(UI)) continue;
-        NoAliasTotalCalls++;
 
         if (F->arg_empty()) break;
 
@@ -69,6 +69,8 @@ bool AddNoalias::cloneFunctions() {
   for(std::map< Function*, std::vector<User*> >::iterator it = fn2Clone.begin(); it != fn2Clone.end(); ++it) {
     Function *f                = it->first;
     std::vector<User*> callers = it->second;
+
+    NoAliasPotentialCalls += f->getNumUses();
 
     Function* NF = cloneFunctionWithNoAliasArgs(f);
     clonedFunctions[f] = NF;
@@ -191,21 +193,6 @@ void AddNoalias::collectFn2Clone() {
           fn2Clone[f].push_back(caller);
         }
       }
-    }
-  }
-  // Collect stats
-  for (std::map< User*, std::vector< std::pair<Argument*, Value*> > >::iterator fit = arguments.begin(); fit != arguments.end(); ++fit) {
-    User* caller = fit->first;
-    Function* f;
-    if (isa<CallInst>(caller)) {
-      CallInst *callInst = dyn_cast<CallInst>(caller);
-      f = callInst->getCalledFunction();
-    } else {
-      InvokeInst *invokeInst = dyn_cast<InvokeInst>(caller);
-      f = invokeInst->getCalledFunction();
-    }
-    if (fn2Clone.count(f) > 0) {
-      NoAliasPotentialCalls++;
     }
   }
 }

@@ -4,6 +4,7 @@ add_llvm_library(LLVMutils
   RecursionIdentifier.h
   RecursionIdentifier.cpp
   ClonesStatistics.cpp
+  ClonesCleaner.cpp
   InitStaticModule.cpp
   )
 
