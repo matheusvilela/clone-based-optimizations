@@ -319,6 +319,7 @@ void initializeStaticFunctionCostPassPass(PassRegistry&);
 void initializeClonesDestroyerPass(PassRegistry&);
 void initializeRecursionIdentifierPass(PassRegistry&);
 void initializeClonesStatisticsPass(PassRegistry&);
+void initializeClonesCleanerPass(PassRegistry&);
 void initializeAddressTakenAnalysisPass(PassRegistry&);
 void initializeAllocIdentifyPass(PassRegistry&);
 void initializeBasicDataStructuresPass(PassRegistry&);

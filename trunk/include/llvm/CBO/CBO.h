@@ -25,6 +25,7 @@ ModulePass *createFunctionFusionPass();
 ModulePass *createClonesDestroyerPass();
 ModulePass *createRecursionIdentifierPass();
 ModulePass *createClonesStatisticsPass();
+ModulePass *createClonesCleanerPass();
 FunctionPass *createBlockEdgeFrequencyPassPass();
 FunctionPass *createBranchPredictionPassPass();
 FunctionPass *createStaticFunctionCostPassPass();

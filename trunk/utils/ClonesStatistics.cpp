@@ -32,7 +32,6 @@ STATISTIC(HighestProfitStat, "Highest profit cloning a function");
 STATISTIC(RecursiveClones, "Number of clones that are recursive functions");
 STATISTIC(CloningSize,     "Size of cloning");
 STATISTIC(InliningSize,    "Size of inlining");
-STATISTIC(OrphansDropped, "Number of ophan functions removed");
 class ClonesStatistics : public ModulePass {
 
   std::map<std::string, Function*> name2fn;
@@ -57,7 +56,6 @@ class ClonesStatistics : public ModulePass {
     InliningSize    = 0;
     AvgProfit       = 0;
     HighestProfitStat = 0;
-    OrphansDropped  = 0;
   }
 
   // +++++ METHODS +++++ //
@@ -113,7 +111,6 @@ bool ClonesStatistics::runOnModule(Module &M) {
 // ============================= //
 
 void ClonesStatistics::print(raw_ostream& O, const Module* M) const {
-  O << "Number of orphans dropped: " << OrphansDropped << '\n';
   O << "Average profit: " << AvgProfit << '\n';
   O << "Highest profit: " << (unsigned)HighestProfit << '\n';
   O << "Obtained on function " << highestProfitFn << '\n';
@@ -241,7 +238,6 @@ void ClonesStatistics::getFusedStatistics() {
      } else {
         CloningSize  += size;
         InliningSize += size;
-        if(F->use_empty()) OrphansDropped++;
 
        // Verify if the original function is recursive
        if (RI->isRecursive(F)) {
@@ -336,12 +332,6 @@ void ClonesStatistics::getStatistics() {
     // Estimate cloning and inlining size
     CloningSize  += clonesSize + originalSize;
     InliningSize += originalSize * uses.size();
-    // Drop orphan functions
-    if(originalFn->use_empty()) {
-      //originalFn->dropAllReferences();
-      //originalFn->eraseFromParent();
-      OrphansDropped++;
-    }
   }
 }
 

@@ -181,6 +181,7 @@ namespace {
       (void) llvm::createClonesDestroyerPass();
       (void) llvm::createRecursionIdentifierPass();
       (void) llvm::createClonesStatisticsPass();
+      (void) llvm::createClonesCleanerPass();
       (void) llvm::createAddressTakenAnalysisPass();
       (void) llvm::createAllocIdentifyPass();
       (void) llvm::createBasicDataStructuresPass();

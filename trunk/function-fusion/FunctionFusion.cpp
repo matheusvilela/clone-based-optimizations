@@ -103,17 +103,7 @@ bool FunctionFusion::runOnModule(Module &M) {
   for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
     if (!F->isDeclaration()) {
       FunctionsCount++;
-       if (F->use_empty()) continue;
-       for (Value::use_iterator UI = F->use_begin(), E = F->use_end(); UI != E; ++UI) {
-         User *U = *UI;
-
-         if (isa<BlockAddress>(U)) continue;
-         if (!isa<CallInst>(U) && !isa<InvokeInst>(U)) continue;
-
-         CallSite CS(cast<Instruction>(U));
-         if (!CS.isCallee(UI)) continue;
-         CallsCount++;
-       }
+      if (!F->use_empty()) CallsCount += F->getNumUses();
     }
   }
 
@@ -186,7 +176,7 @@ Function* FunctionFusion::fuseFunctions(Function* use, Function* definition, uns
 
   // Create the new fused function
   FunctionType *newFT = FunctionType::get(use->getReturnType(), params, use->isVarArg());
-  Function *NF = Function::Create(newFT, use->getLinkage());
+  Function *NF = Function::Create(newFT, GlobalValue::InternalLinkage);
   NF->setCallingConv(use->getCallingConv());
   // NF->copyAttributesFrom(use);
 

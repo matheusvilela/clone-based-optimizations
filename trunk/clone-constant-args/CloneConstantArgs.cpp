@@ -28,6 +28,7 @@ void CloneConstantArgs::findConstantArgs(Module &M) {
       FunctionsCount++;
 
       if (F->use_empty()) continue;
+      CallsCount += F->getNumUses();
 
       for (Value::use_iterator UI = F->use_begin(), E = F->use_end(); UI != E; ++UI) {
         User *U = *UI;
@@ -37,7 +38,6 @@ void CloneConstantArgs::findConstantArgs(Module &M) {
 
         CallSite CS(cast<Instruction>(U));
         if (!CS.isCallee(UI)) continue;
-        CallsCount++;
 
         if(F->arg_empty()) break;
 
