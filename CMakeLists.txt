@@ -5,3 +5,4 @@ add_subdirectory(pur)
 add_subdirectory(static-profiler)
 add_subdirectory(utils)
 add_subdirectory(dead-store-elimination)
+
