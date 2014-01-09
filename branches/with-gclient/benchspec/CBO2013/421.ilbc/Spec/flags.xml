@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!DOCTYPE flagsdescription SYSTEM
+       "http://www.spec.org/dtd/cpuflags1.dtd">
+
+<!-- This file defines flags that appear in the sources for 421.ilbc.
+
+  Copyright (C) 2013 Clone-Based Optimizations Authors
+
+-->
+<flagsdescription>
+
+<!-- Normal flags file should suggest a name for themselves -->
+<filename>421.ilbc.flags</filename>
+
+<title>421.ilbc Flags</title>
+
+<header>
+<![CDATA[
+<p>These are flags that appear in the benchmark sources, categorized as to
+whether they are portability candidates, mandatory, or forbidden.
+</p>
+]]>
+</header>
+
+</flagsdescription>

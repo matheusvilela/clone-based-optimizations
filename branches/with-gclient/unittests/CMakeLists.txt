@@ -1,0 +1,16 @@
+add_custom_target(UnitTests)
+set_target_properties(UnitTests PROPERTIES FOLDER "Tests")
+
+function(add_llvm_unittest test_dirname)
+  add_unittest(UnitTests ${test_dirname} ${ARGN})
+endfunction()
+
+add_subdirectory(../llvm/unittests/ADT ${CMAKE_CURRENT_BINARY_DIR}/ADT)
+add_subdirectory(../llvm/unittests/Analysis ${CMAKE_CURRENT_BINARY_DIR}/Analysis)
+add_subdirectory(../llvm/unittests/ExecutionEngine ${CMAKE_CURRENT_BINARY_DIR}/ExecutionEngine)
+add_subdirectory(../llvm/unittests/Bitcode ${CMAKE_CURRENT_BINARY_DIR}/Bitcode)
+add_subdirectory(../llvm/unittests/Option ${CMAKE_CURRENT_BINARY_DIR}/Option)
+add_subdirectory(../llvm/unittests/Support ${CMAKE_CURRENT_BINARY_DIR}/Support)
+add_subdirectory(../llvm/unittests/Transforms ${CMAKE_CURRENT_BINARY_DIR}/Transforms)
+add_subdirectory(../llvm/unittests/IR ${CMAKE_CURRENT_BINARY_DIR}/IR)
+add_subdirectory(PointsToAnalysis)
