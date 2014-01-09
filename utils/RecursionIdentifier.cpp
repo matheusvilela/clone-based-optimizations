@@ -49,9 +49,5 @@ void RecursionIdentifier::print(raw_ostream &O, const Module *M) const {
 
 char RecursionIdentifier::ID = 0;
 
-INITIALIZE_PASS(RecursionIdentifier, "recursion-identifier",
-    "Extracts a few useful informations about the recursive functions in a program, including mutually recursive functions.", false, true)
-
-ModulePass *llvm::createRecursionIdentifierPass() {
-  return new RecursionIdentifier;
-}
+static RegisterPass<RecursionIdentifier> X("recursion-identifier",
+    "Extracts a few useful informations about the recursive functions in a program, including mutually recursive functions.", false, true);

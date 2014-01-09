@@ -20,7 +20,6 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/InitializePasses.h"
-#include "llvm/CBO/CBO.h"
 #include "StaticFunctionCost.h"
 
 using namespace llvm;
@@ -231,9 +230,5 @@ bool ClonesDestroyer::substituteCallSites(Function *Fn, Function *Clone, bool is
 // Register the pass to the LLVM framework
 char ClonesDestroyer::ID = 0;
 
-INITIALIZE_PASS(ClonesDestroyer, "remove-worthless-clones",
-                "Statically estimate if a worthless clone should be removed", false, true)
-
-ModulePass *llvm::createClonesDestroyerPass() {
-  return new ClonesDestroyer;
-}
+static RegisterPass<ClonesDestroyer> X("remove-worthless-clones",
+                "Statically estimate if a worthless clone should be removed", false, true);

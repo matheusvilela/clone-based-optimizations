@@ -1,8 +1,10 @@
+# Makefile for hello pass
+
 # Path to top level of LLVM hierarchy
 LEVEL = ../../../..
 
 # Name of the library to build
-LIBRARYNAME = CBOStaticProfiler
+LIBRARYNAME = CBODSE
 
 # Make the shared library become a loadable module so the tools can
 # dlopen/dlsym on the resulting library.

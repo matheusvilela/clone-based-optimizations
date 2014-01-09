@@ -17,9 +17,7 @@
 #include "llvm/Support/Regex.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/InitializePasses.h"
-#include "llvm/CBO/CBO.h"
-#include "StaticFunctionCost.h"
+#include "../static-profiler/StaticFunctionCost.h"
 #include "RecursionIdentifier.h"
 
 #undef DEBUG_TYPE
@@ -338,9 +336,5 @@ void ClonesStatistics::getStatistics() {
 // Register the pass to the LLVM framework
 char ClonesStatistics::ID = 0;
 
-INITIALIZE_PASS(ClonesStatistics, "clones-statistics",
-                "Get statistics about the cloning optimizations", false, true)
-
-ModulePass *llvm::createClonesStatisticsPass() {
-  return new ClonesStatistics;
-}
+static RegisterPass<ClonesStatistics> X("clones-statistics",
+                "Get statistics about the cloning optimizations", false, true);

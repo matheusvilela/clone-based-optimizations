@@ -1,6 +1,4 @@
 #include "FunctionFusion.h"
-#include "llvm/InitializePasses.h"
-#include "llvm/CBO/CBO.h"
 
 using namespace llvm;
 
@@ -296,8 +294,4 @@ void FunctionFusion::print(raw_ostream& O, const Module* M) const {
 
 // Register the pass to the LLVM framework
 char FunctionFusion::ID = 0;
-INITIALIZE_PASS(FunctionFusion, "function-fusion", "Clone functions with constant args.", false, false)
-
-ModulePass *llvm::createFunctionFusionPass() {
-  return new FunctionFusion;
-}
+static RegisterPass<FunctionFusion> X("function-fusion", "Fuse possible functions with cloning.", false, false);

@@ -1,6 +1,3 @@
-add_llvm_library(LLVMcca
+add_llvm_loadable_module(CBOCloneConstants
   CloneConstantArgs.cpp
-  InitStaticModule.cpp
   )
-
-add_dependencies(LLVMcca intrinsics_gen)
