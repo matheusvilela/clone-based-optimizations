@@ -1,11 +1,5 @@
-include_directories(../static-profiler)
-
-add_llvm_library(LLVMutils
-  RecursionIdentifier.h
-  RecursionIdentifier.cpp
-  ClonesStatistics.cpp
+add_llvm_loadable_module(CBOUtils
   ClonesCleaner.cpp
-  InitStaticModule.cpp
+  ClonesStatistics.cpp
+  RecursionIdentifier.cpp
   )
-
-add_dependencies(LLVMutils intrinsics_gen)

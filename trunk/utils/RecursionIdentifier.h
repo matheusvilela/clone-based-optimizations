@@ -1,8 +1,6 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/SCCIterator.h"
 #include "llvm/Analysis/CallGraphSCCPass.h"
-#include "llvm/InitializePasses.h"
-#include "llvm/CBO/CBO.h"
 
 #include <set>
 #include <vector>

@@ -1,6 +1,3 @@
-add_llvm_library(LLVMfunction-fusion
+add_llvm_loadable_module(CBOFunctionFusion
   FunctionFusion.cpp
-  InitStaticModule.cpp
   )
-
-add_dependencies(LLVMfunction-fusion intrinsics_gen)

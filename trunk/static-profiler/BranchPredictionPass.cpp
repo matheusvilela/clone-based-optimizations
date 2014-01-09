@@ -45,19 +45,13 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/InitializePasses.h"
-#include "llvm/CBO/CBO.h"
 
 using namespace llvm;
 
 char BranchPredictionPass::ID = 0;
 
-INITIALIZE_PASS(BranchPredictionPass, "branch-prediction",
-                "Predict branch probabilities", false, true)
-
-FunctionPass *llvm::createBranchPredictionPassPass() {
-  return new BranchPredictionPass;
-}
+static RegisterPass<BranchPredictionPass> X("branch-prediction",
+                "Predict branch probabilities", false, true);
 
 // FunctionPass *llvm::createBranchPredictionPass() {
 //   return new BranchPredictionPass();

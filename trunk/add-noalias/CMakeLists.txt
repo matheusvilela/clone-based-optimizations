@@ -1,8 +1,5 @@
-include_directories(../pa-driver)
-
-add_llvm_library(LLVMnoalias
+add_llvm_loadable_module(CBOAddNoalias
   AddNoalias.cpp
-  InitStaticModule.cpp
+  PADriver.cpp
+  PointerAnalysis.cpp
   )
-
-add_dependencies(LLVMnoalias intrinsics_gen)

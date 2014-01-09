@@ -5,12 +5,8 @@ using namespace llvm;
 
 char StaticFunctionCostPass::ID = 0;
 
-INITIALIZE_PASS(StaticFunctionCostPass, "static-function-cost",
-                "Statically estimate a function cost based on basic block and edge frequencies", false, true)
-
-FunctionPass *llvm::createStaticFunctionCostPassPass() {
-  return new StaticFunctionCostPass;
-}
+static RegisterPass<StaticFunctionCostPass> X("static-function-cost",
+                "Statically estimate a function cost based on basic block and edge frequencies", false, true);
 
 void StaticFunctionCostPass::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.addRequired<BlockEdgeFrequencyPass>();

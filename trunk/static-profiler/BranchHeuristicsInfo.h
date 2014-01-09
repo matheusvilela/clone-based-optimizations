@@ -18,6 +18,7 @@
 
 // To get the definition of std::pair.
 #include <utility>
+#include "llvm/IR/Constants.h"
 #include "BranchPredictionInfo.h"
 
 namespace llvm {

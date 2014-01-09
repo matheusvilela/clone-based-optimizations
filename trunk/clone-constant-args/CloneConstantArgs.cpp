@@ -1,6 +1,4 @@
 #include "CloneConstantArgs.h"
-#include "llvm/InitializePasses.h"
-#include "llvm/CBO/CBO.h"
 
 using namespace llvm;
 
@@ -187,8 +185,4 @@ void CloneConstantArgs::print(raw_ostream& O, const Module* M) const {
 
 // Register the pass to the LLVM framework
 char CloneConstantArgs::ID = 0;
-INITIALIZE_PASS(CloneConstantArgs, "clone-constant-args", "Clone functions with constant args.", false, false)
-
-ModulePass *llvm::createCloneConstantArgsPass() {
-  return new CloneConstantArgs;
-}
+static RegisterPass<CloneConstantArgs> X("clone-constant-args", "Clone functions with constant args.", false, false);

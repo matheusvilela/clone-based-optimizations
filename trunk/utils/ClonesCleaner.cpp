@@ -17,8 +17,6 @@
 #include "llvm/Support/Regex.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/InitializePasses.h"
-#include "llvm/CBO/CBO.h"
 
 #undef DEBUG_TYPE
 #define DEBUG_TYPE "clones-cleaner"
@@ -151,9 +149,5 @@ bool ClonesCleaner::removeFunctionFusionGarbage(Module &M) {
 // Register the pass to the LLVM framework
 char ClonesCleaner::ID = 0;
 
-INITIALIZE_PASS(ClonesCleaner, "clones-cleaner",
-                "Clean useless code.", false, true)
-
-ModulePass *llvm::createClonesCleanerPass() {
-  return new ClonesCleaner;
-}
+static RegisterPass<ClonesCleaner> X("clones-cleaner",
+                "Clean useless code.", false, true);
