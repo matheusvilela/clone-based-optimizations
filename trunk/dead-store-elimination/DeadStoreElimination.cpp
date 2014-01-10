@@ -34,6 +34,14 @@ DeadStoreEliminationPass::DeadStoreEliminationPass() : ModulePass(ID) {
 
 bool DeadStoreEliminationPass::runOnModule(Module &M) {
 
+  //Get some stats before doing anything
+  for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
+    if (!F->isDeclaration()) {
+      FunctionsCount++;
+      CallsCount += F->getNumUses();
+    }
+  }
+
   if (!getFnThatStoreOnArgs(M)) {
     return false;
   }
@@ -276,8 +284,6 @@ void DeadStoreEliminationPass::runOverwrittenDeadStoreAnalysis(Module &M) {
   DEBUG(errs() << "Running overwritten dead store analysis...\n");
   for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
     if (!F->isDeclaration()) {
-      FunctionsCount++;
-      CallsCount += F->getNumUses();
       runOverwrittenDeadStoreAnalysisOnFn(*F);
     }
   }
