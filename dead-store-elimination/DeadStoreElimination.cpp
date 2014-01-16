@@ -27,7 +27,7 @@ DeadStoreEliminationPass::DeadStoreEliminationPass() : ModulePass(ID) {
   FunctionsCloned = 0;
   ClonesCount     = 0;
   CallsCount      = 0;
-  PromissorCalls  = 0; //FIXME: get this stats
+  PromissorCalls  = 0;
   CallsReplaced   = 0;
 }
 
@@ -462,6 +462,7 @@ bool DeadStoreEliminationPass::cloneFunctions() {
     std::map< std::set<Value*> , Function*> clonedFns;
     int i = 0;
     FunctionsCloned++;
+    PromissorCalls += F->getNumUses();
     for (std::vector<Instruction*>::iterator it2 = callSitesToClone.begin();
         it2 != callSitesToClone.end(); ++it2, ++i) {
 
