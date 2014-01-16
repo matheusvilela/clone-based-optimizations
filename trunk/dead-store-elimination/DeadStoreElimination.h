@@ -14,12 +14,12 @@
 #include "llvm/Analysis/ValueTracking.h"
 
 namespace llvm {
-  STATISTIC(RemovedStores,   "Number of removed stores.");
+  STATISTIC(RemovedStores,   "Number of removed stores");
   STATISTIC(FunctionsCount,  "Number functions");
   STATISTIC(FunctionsCloned, "Number of cloned functions");
-  STATISTIC(ClonesCount,     "Number of functions that are clones.");
+  STATISTIC(ClonesCount,     "Number of functions that are clones");
   STATISTIC(CallsCount,      "Number of calls");
-  STATISTIC(PromissorCalls,  "Number of promissor calls.");
+  STATISTIC(PromissorCalls,  "Number of promissor calls");
   STATISTIC(CallsReplaced,   "Number of replaced calls");
 
   enum OverwriteResult {

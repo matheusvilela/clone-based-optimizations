@@ -136,13 +136,14 @@ void ClonesStatistics::collectFunctions(Function &F) {
 
   name2fn[fnName] = &F;
 
-  Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.noret))+");
+  Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.deadstores[0-9]+)|(\\.noret))+");
   bool isCloned = ending.match(fnName);
 
   std::string originalName = fnName;
   if (isCloned) {
     Regex noaliasend("\\.noalias");
     Regex constargsend("\\.constargs[0-9]+");
+    Regex deadstoresend("\\.deadstores[0-9]+");
     Regex noretend("\\.noret");
 
     if (noaliasend.match(fnName)) {
@@ -153,6 +154,9 @@ void ClonesStatistics::collectFunctions(Function &F) {
     }
     if (noretend.match(fnName)) {
       originalName = noretend.sub("", originalName);
+    }
+    if (deadstoresend.match(fnName)) {
+      originalName = deadstoresend.sub("", originalName);
     }
   }
   functions[originalName].push_back(&F);
@@ -257,7 +261,7 @@ void ClonesStatistics::getStatistics() {
     for (int i = 0; i < numFunctions; ++i) {
       Function* F = it->second[i];
       std::string fnName = F->getName();
-      Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.noret))+");
+      Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.deadstores[0-9]+)|(\\.noret))+");
       bool isCloned = ending.match(fnName);
       if (isCloned) {
         clonedFns.push_back(F);
