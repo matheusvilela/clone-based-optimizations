@@ -21,6 +21,7 @@
 #undef DEBUG_TYPE
 #define DEBUG_TYPE "clones-cleaner"
 
+
 using namespace llvm;
 
 STATISTIC(OrphansDropped, "Number of ophan functions removed");
@@ -60,7 +61,7 @@ void ClonesCleaner::collectFunctions(Module &M) {
     if (!F->isDeclaration()) {
       std::string fnName = F->getName();
 
-      Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.noret))+");
+      Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.deadstores[0-9]+)|(\\.noret))+");
       Regex fusedEnding("\\.fused_[0-9]+$");
       bool isFused  = fusedEnding.match(fnName);
       bool isCloned = ending.match(fnName);
@@ -70,6 +71,7 @@ void ClonesCleaner::collectFunctions(Module &M) {
         Regex noaliasend("\\.noalias");
         Regex constargsend("\\.constargs[0-9]+");
         Regex noretend("\\.noret");
+        Regex deadstoresend("\\.deadstores[0-9]+");
 
         if (noaliasend.match(fnName)) {
           originalName = noaliasend.sub("", originalName);
@@ -79,6 +81,9 @@ void ClonesCleaner::collectFunctions(Module &M) {
         }
         if (noretend.match(fnName)) {
           originalName = noretend.sub("", originalName);
+        }
+        if (deadstoresend.match(fnName)) {
+           originalName = deadstoresend.sub("", originalName);
         }
         functions[originalName].push_back(F);
       } else if (isFused) {
@@ -99,7 +104,7 @@ void ClonesCleaner::collectFunctions(Module &M) {
 }
 
 bool ClonesCleaner::removeOrphanFunctions() {
-  Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.noret))+");
+  Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.deadstores[0-9]+)|(\\.noret))+");
   Regex fusedEnding("\\.fused_[0-9]+$");
   bool modified = false;
 
