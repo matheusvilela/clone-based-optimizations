@@ -32,6 +32,7 @@ STATISTIC(CloningSize,     "Size of cloning");
 STATISTIC(InliningSize,    "Size of inlining");
 STATISTIC(highestProfitFnCostStat, "Cost of function whose clone got the best profit ratio");
 STATISTIC(highestProfitCloneCostStat, "Cost of clone with the best profit ratio");
+STATISTIC(reusedClones, "Number of clones that are called more than once");
 class ClonesStatistics : public ModulePass {
 
   std::map<std::string, Function*> name2fn;
@@ -59,6 +60,7 @@ class ClonesStatistics : public ModulePass {
     InliningSize    = 0;
     AvgProfit       = 0;
     HighestProfitStat = 0;
+    reusedClones = 0;
   }
 
   // +++++ METHODS +++++ //
@@ -205,6 +207,11 @@ void ClonesStatistics::getFusedStatistics() {
   for (std::map<Function*, std::vector<Function*> >::iterator it = fusedFns.begin();
         it != fusedFns.end(); ++it) {
      Function *clonedFn = it->first;
+
+     if (clonedFn->getNumUses() >= 2) {
+        reusedClones++;
+     }
+
      std::vector<Function*> originalFns = it->second;
      double originalCost = 0.0, clonedCost;
      unsigned int originalSize = 0;
@@ -322,7 +329,9 @@ void ClonesStatistics::getStatistics() {
     unsigned int clonesSize = 0;
     for (std::vector<Function*>::iterator it2 = clonedFns.begin(); it2 != clonedFns.end(); ++it2) {
       Function* clonedFn = *it2;
-
+      if (clonedFn->getNumUses() >= 2) {
+         reusedClones++;
+      }
 
       // Get clone size
       clonesSize += getFunctionSize(*clonedFn);
