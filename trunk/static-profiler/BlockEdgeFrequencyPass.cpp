@@ -135,6 +135,7 @@ void BlockEdgeFrequencyPass::print(raw_ostream &O, const Module *M) const {
     O << "  " << BB->getName() << " = " << format("%.3f", frequency)
       << "\n";
 
+    /*
     // Print the edges frequencies for all successor of this block.
     const TerminatorInst *TI = BB->getTerminator();
     for (unsigned s = 0; s < TI->getNumSuccessors(); ++s) {
@@ -145,6 +146,7 @@ void BlockEdgeFrequencyPass::print(raw_ostream &O, const Module *M) const {
       O << "   " << BB->getName() << " -> " << successor->getName()
                    << " = " << format("%.3f", EdgeFrequencies.at(edge)) << "\n";
     }
+    */
   }
 }
 

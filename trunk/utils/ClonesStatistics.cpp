@@ -30,6 +30,8 @@ STATISTIC(HighestProfitStat, "Highest profit cloning a function");
 STATISTIC(RecursiveClones, "Number of clones that are recursive functions");
 STATISTIC(CloningSize,     "Size of cloning");
 STATISTIC(InliningSize,    "Size of inlining");
+STATISTIC(highestProfitFnCostStat, "Cost of function whose clone got the best profit ratio");
+STATISTIC(highestProfitCloneCostStat, "Cost of clone with the best profit ratio");
 class ClonesStatistics : public ModulePass {
 
   std::map<std::string, Function*> name2fn;
@@ -37,6 +39,9 @@ class ClonesStatistics : public ModulePass {
   StaticFunctionCostPass *SFCP;
   RecursionIdentifier *RI;
   std::string highestProfitFn;
+  std::string highestProfitClone;
+  double highestProfitFnCost;
+  double highestProfitCloneCost;
 
   double TotalProfits;
   unsigned int NumFunctions;
@@ -101,7 +106,9 @@ bool ClonesStatistics::runOnModule(Module &M) {
 
   if (NumFunctions != 0) AvgProfit = (unsigned)TotalProfits/NumFunctions;
   else AvgProfit = 0;
-  HighestProfitStat = (unsigned) HighestProfit;
+  HighestProfitStat          = (unsigned) HighestProfit;
+  highestProfitFnCostStat    = (unsigned) highestProfitFnCost;
+  highestProfitCloneCostStat = (unsigned) highestProfitCloneCost;
   DEBUG(print(errs(), &M));
   return false;
 }
@@ -109,9 +116,12 @@ bool ClonesStatistics::runOnModule(Module &M) {
 // ============================= //
 
 void ClonesStatistics::print(raw_ostream& O, const Module* M) const {
-  O << "Average profit: " << AvgProfit << '\n';
-  O << "Highest profit: " << (unsigned)HighestProfit << '\n';
-  O << "Obtained on function " << highestProfitFn << '\n';
+  if ((unsigned)HighestProfit > 0) {
+     O << "Average profit: " << AvgProfit << '\n';
+     O << "Highest profit: " << (unsigned)HighestProfit << '\n';
+     O << "Obtained on function " << highestProfitFn << '\n';
+     O << "Cloning it as " << highestProfitClone << '\n';
+  }
 }
 
 bool ClonesStatistics::removeFunctionFusionGarbage(Module &M) {
@@ -138,6 +148,11 @@ void ClonesStatistics::collectFunctions(Function &F) {
 
   Regex ending(".*((\\.noalias)|(\\.constargs[0-9]+)|(\\.deadstores[0-9]+)|(\\.noret))+");
   bool isCloned = ending.match(fnName);
+
+  Regex fusedEnding("\\.fused_[0-9]+$");
+  bool isFused = fusedEnding.match(fnName);
+
+  if (isFused) return;
 
   std::string originalName = fnName;
   if (isCloned) {
@@ -209,13 +224,17 @@ void ClonesStatistics::getFusedStatistics() {
 
      // Get profit
      double profit = originalCost - clonedCost;
+     double proportional_profit = originalCost / clonedCost;
      if (profit > 0.0) {
         TotalProfits += profit;
         NumFunctions++;
      }
-     if (profit > HighestProfit) {
-        HighestProfit = profit;
+     if (proportional_profit > HighestProfit && proportional_profit < 50.0 && clonedFn->getNumUses() > 0) {
+        HighestProfit = proportional_profit;
         highestProfitFn = clonedFn->getName();
+        highestProfitClone = clonedFn->getName();
+        highestProfitFnCost = originalCost;
+        highestProfitCloneCost = clonedCost;
      }
 
      // Get clones uses
@@ -321,13 +340,17 @@ void ClonesStatistics::getStatistics() {
 
       // Get profit
       double profit = originalCost - clonedCost;
+      double proportional_profit = originalCost / clonedCost;
       if (profit > 0.0) {
          TotalProfits += profit;
          NumFunctions++;
       }
-      if (profit > HighestProfit) {
-         HighestProfit = profit;
+      if (proportional_profit > HighestProfit && proportional_profit < 50.0 && clonedFn->getNumUses() > 0) {
+         HighestProfit = proportional_profit;
          highestProfitFn = originalFn->getName();
+         highestProfitClone = clonedFn->getName();
+         highestProfitFnCost = originalCost;
+         highestProfitCloneCost = clonedCost;
       }
     }
 
