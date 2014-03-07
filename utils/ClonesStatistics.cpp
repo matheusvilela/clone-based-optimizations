@@ -32,7 +32,17 @@ STATISTIC(CloningSize,     "Size of cloning");
 STATISTIC(InliningSize,    "Size of inlining");
 STATISTIC(highestProfitFnCostStat, "Cost of function whose clone got the best profit ratio");
 STATISTIC(highestProfitCloneCostStat, "Cost of clone with the best profit ratio");
-STATISTIC(reusedClones, "Number of clones that are called more than once");
+STATISTIC(oneClones, "Number of clones that are called one times");
+STATISTIC(twoClones, "Number of clones that are called two times");
+STATISTIC(threeClones, "Number of clones that are called three times");
+STATISTIC(fourClones, "Number of clones that are called four times");
+STATISTIC(fiveClones, "Number of clones that are called five times");
+STATISTIC(sixClones, "Number of clones that are called six times");
+STATISTIC(sevenClones, "Number of clones that are called seven times");
+STATISTIC(eightClones, "Number of clones that are called eight times");
+STATISTIC(nineClones, "Number of clones that are called nine times");
+STATISTIC(tenClones, "Number of clones that are called ten times");
+STATISTIC(maxCalls, "Max number of times a clone is called");
 class ClonesStatistics : public ModulePass {
 
   std::map<std::string, Function*> name2fn;
@@ -60,7 +70,17 @@ class ClonesStatistics : public ModulePass {
     InliningSize    = 0;
     AvgProfit       = 0;
     HighestProfitStat = 0;
-    reusedClones = 0;
+    oneClones = 0;
+    twoClones = 0;
+    threeClones = 0;
+    fourClones = 0;
+    fiveClones = 0;
+    sixClones = 0;
+    sevenClones = 0;
+    eightClones = 0;
+    nineClones = 0;
+    tenClones = 0;
+    maxCalls = 0;
   }
 
   // +++++ METHODS +++++ //
@@ -208,8 +228,42 @@ void ClonesStatistics::getFusedStatistics() {
         it != fusedFns.end(); ++it) {
      Function *clonedFn = it->first;
 
-     if (clonedFn->getNumUses() >= 2) {
-        reusedClones++;
+     switch(clonedFn->getNumUses()) {
+     case 0:
+        break;
+     case 1:
+        oneClones++;
+        break;
+     case 2:
+        twoClones++;
+        break;
+     case 3:
+        threeClones++;
+        break;
+     case 4:
+        fourClones++;
+        break;
+     case 5:
+        fiveClones++;
+        break;
+     case 6:
+        sixClones++;
+        break;
+     case 7:
+        sevenClones++;
+        break;
+     case 8:
+        eightClones++;
+        break;
+     case 9:
+        nineClones++;
+        break;
+     default:
+        tenClones++;
+        break;
+     }
+     if(clonedFn->getNumUses() > maxCalls) {
+        maxCalls = clonedFn->getNumUses();
      }
 
      std::vector<Function*> originalFns = it->second;
@@ -329,9 +383,43 @@ void ClonesStatistics::getStatistics() {
     unsigned int clonesSize = 0;
     for (std::vector<Function*>::iterator it2 = clonedFns.begin(); it2 != clonedFns.end(); ++it2) {
       Function* clonedFn = *it2;
-      if (clonedFn->getNumUses() >= 2) {
-         reusedClones++;
-      }
+     switch(clonedFn->getNumUses()) {
+     case 0:
+        break;
+     case 1:
+        oneClones++;
+        break;
+     case 2:
+        twoClones++;
+        break;
+     case 3:
+        threeClones++;
+        break;
+     case 4:
+        fourClones++;
+        break;
+     case 5:
+        fiveClones++;
+        break;
+     case 6:
+        sixClones++;
+        break;
+     case 7:
+        sevenClones++;
+        break;
+     case 8:
+        eightClones++;
+        break;
+     case 9:
+        nineClones++;
+        break;
+     default:
+        tenClones++;
+        break;
+     }
+     if(clonedFn->getNumUses() > maxCalls) {
+        maxCalls = clonedFn->getNumUses();
+     }
 
       // Get clone size
       clonesSize += getFunctionSize(*clonedFn);
