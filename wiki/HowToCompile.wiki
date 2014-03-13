@@ -1,140 +1,20 @@
 #summary How to compile CBO
 
-= Requirements =
+Our clone-based optimizations are implemented as passes on LLVM. This way, they can be compiled just like any other pass. For more information on how to compile a pass on LLVM, refer to the official guide:
 
-== Install depot_tools ==
+http://llvm.org/docs/WritingAnLLVMPass.html
 
-Follow the documentation from Chromium build:
-http://dev.chromium.org/developers/how-tos/install-depot-tools.
-
-== Install CMake ==
-
-Follow the install steps for CMake:
-http://www.cmake.org/cmake/help/install.html.
-
-
-= Checkout the sources =
-
-== Windows ==
-
-Create a directory to hold your source code. This example assumes c:\llvm-cbo,
-but other names are fine.
-
-*Important:* Make sure the full directory path has no spaces.
-
-In a shell window, execute the following commands:
+First, you should checkout our code. Considering your LLVM source code is on folder $LLVM_ROOT, you should do:
 
 <code language="xml">
-cd c:\llvm-cbo
-gclient config http://clone-based-opts.googlecode.com/svn/trunk
-</code>
+$ cd $LLVM_ROOT/lib/Transforms/
+$ svn checkout http://clone-based-opts.googlecode.com/svn/trunk/ clone-based-opts</code>
 
-To download the initial code, update your checkout as described below.
+After that, each of our optimization can be compiled as individual passes. The following folders in our project are llvm passes:
 
-== Linux ==
-
-Pick a directory for your build.  We will call this directory $LLVM_CBO_ROOT
-below.
-
-Check out the code:
-
-<code language="xml">
-$ cd $LLVM_CBO_ROOT
-$ gclient config http://clone-based-opts.googlecode.com/svn/trunk
-</code>
-
-To download the initial code, update your checkout as described in next
-section.
-
-== Mac OSX ==
-
-Create a directory to hold the code.  This example assumes the directory is
-~/llvm-cbo, but other names are fine.  Note that if you have FileVault enabled,
-you'll want to either disable it or put the code in a folder outside the home
-directory, as otherwise Xcode will be very slow or hang.  You also probably
-want to disable Spotlight indexing for that folder (System Preferences ->
-Spotlight -> mark the folder as private).
-
-From a shell in the Terminal, execute the following commands: 
-
-<code language="xml">
-$ cd ~/llvm-cbo
-$ gclient config http://clone-based-opts.googlecode.com/svn/trunk
-</code>
-
-To download the initial code, update your checkout as described below.
-
-
-= Update to the latest revision =
-
-The first time you execute gclient, there will be a delay (a minute or so)
-while it updates the depot tools.
-
-In a shell window, execute the following commands:
-
-<code language="xml">
-cd llvm-cbo
-gclient sync
-</code>
-
-To update to a specific revision, use
-
-<code language="xml">
-gclient sync --revision trunk@####
-</code>
-
-and the DEPS file will make sure you get the other directories in their
-matching forms.
-
-
-= Create the build using CMake =
-
-Create a directory to contain the build:
-
-<code language="xml">
-cd llvm-cbo/trunk
-mkdir build && cd build
-</code>
-
-Now, run CMake to generate the project build scripts for you:
-
-<code language="xml">
-cmake ..
-</code>
-
-This will generate the build using the default CMake generator for your
-platform. It will be GNU Makefiles if you are using Linux or Mac OSX, and
-Visual Studio (auto detected) if Windows.
-
-If you are using Mac OSX and would like to use Xcode to build the code, use
-this command instead:
-
-<code language="xml">
-cmake -G Xcode ..
-</code>
-
-And, if you would like to use a specific Visual Studio version, in case you
-have more than one, then use the following command:
-
-<code language="xml">
-cmake -G "Visual Studio 9 2008" ..
-</code>
-
-Check the CMake documentation for more build options.
-
-Now that you have the build, use it to build LLVM and the embedded CBO passes.
-Typically, on Linux you would do:
-
-<code language="xml">
-make
-</code>
-
-If you have selected to use Xcode, you can open the workspace using it, or you
-can just execute the command-line build:
-
-<code language="xml">
-xcodebuild
-</code>
-
-If you have used the Visual Studio generator, just open VS and point it to the
-solution recently created by CMake.
+ * *add-noalias:* implements Pointer Disambiguation;
+ * *clone-constant-args:* implements Constant Propagation;
+ * *dead-store-elimination:* implements Dead-Stores Elimination;
+ * *function-fusion:* implements Function Fusion;
+ * *pur:* implements Elimination of Unused Return Values;
+ * *static-profiler:* implements Wu and Laru's static profiler.
