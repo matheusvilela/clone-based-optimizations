@@ -65,5 +65,5 @@ $ make -j2
 After everything is compiled, we are done. You must be able to start using Andersen Alias Analysis. In order to use it, you must specify it on your opt command line. Something like this:
 
 <code language="xml"> 
-$ opt -load /path/to/your/pass.so -basicaa -lazy-andersen-aa -your-pass foo.bc -o foo.optimized.bc
+$ opt -load /path/to/your/pass.so -basicaa -andersen-aa -your-pass foo.bc -o foo.optimized.bc
 </code>
