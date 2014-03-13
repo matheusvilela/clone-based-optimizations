@@ -1,0 +1,69 @@
+#summary How to improve our results using Andersen Alias Analysis.
+
+The results of some of our optimizations are dependent on the alias analysis used. We suggest using a custom version of LLVM from here:
+
+https://github.com/TristanSchmelcher/llvm-andersen
+
+This fork of LLVM implements an Andersen style Alias Analysis.
+
+== How to use it ==
+
+First, we must clone Tristan's version of LLVM:
+<code language="xml">
+$ export LLVM_ROOT=~/llvm-andersen
+$ git clone https://github.com/TristanSchmelcher/llvm-andersen.git $LLVM_ROOT</code>
+
+Building it with clang is a bit trickier. Tristan's version of LLVM is on version 3.4, but not the release version. This way, clang 3.4 release version is not able to build with his LLVM fork.
+
+So, if we want to build LLVM with clang, we must use a version from the same day Tristan forked LLVM. Using clang on commit bf03b375d887403e78837c9453fbad45efaef91d works. This way, you must do the following:
+
+<code language="xml">
+$ cd $LLVM_ROOT/tools/
+$ git clone http://llvm.org/git/clang.git clang
+$ cd $LLVM_ROOT/tools/clang  
+$ git checkout release_34 
+$ git reset --hard bf03b375d887403e78837c9453fbad45efaef91d</code>
+
+After that, you must make some changes on clang to make it compatible with Tristan's changes. The changes are as following. Lines with a plus sign (+) should be added. Lines with minus signs (-) should be deleted.
+
+On file $LLVM_ROOT/tools/clang/tools/driver/Makefile:
+
+<code language="xml"> 
+- LINK_COMPONENTS := $(TARGETS_TO_BUILD) asmparser bitreader bitwriter codegen \
++ LINK_COMPONENTS := $(TARGETS_TO_BUILD) Andersen asmparser bitreader bitwriter codegen \
+</code>
+
+On file $LLVM_ROOT/tools/clang/tools/driver/CMakeLists.txt:
+
+<code language="xml"> 
+ set( LLVM_LINK_COMPONENTS
+    ${LLVM_TARGETS_TO_BUILD}
++   Andersen
+    asmparser
+    bitreader
+    bitwriter
+</code>
+
+Now, you should be able to compile LLVM and use Andersen Alias Analysis. You can compile LLVM normally, both using cmake or make:
+
+<code language="xml"> 
+$ cd $LLVM_ROOT
+$ ./configure
+$ make -j2
+</code>
+
+or
+
+<code language="xml"> 
+$ cd $LLVM_ROOT
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make -j2
+</code>
+
+After everything is compiled, we are done. You must be able to start using Andersen Alias Analysis. In order to use it, you must specify it on your opt command line. Something like this:
+
+<code language="xml"> 
+$ opt -load /path/to/your/pass.so -basicaa -lazy-andersen-aa -your-pass foo.bc -o foo.optimized.bc
+</code>
